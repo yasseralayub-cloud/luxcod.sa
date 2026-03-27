@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -46,6 +46,10 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [formMessage, setFormMessage] = useState('');
   const [currentRatingIndex, setCurrentRatingIndex] = useState(0);
+  const [reviewFormData, setReviewFormData] = useState({ name: '', comment: '', stars: 0 });
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState('');
+  const [hoveredStars, setHoveredStars] = useState(0);
 
   // Scroll Reveal Hooks
   const whyWebsiteRef = useScrollReveal();
@@ -139,6 +143,43 @@ export default function Home() {
   const handleWhatsAppClick = (message: string) => {
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/966506572881?text=${encodedMessage}`, '_blank');
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!reviewFormData.name || !reviewFormData.comment || reviewFormData.stars === 0) {
+      setReviewMessage(isArabic ? 'يرجى ملء جميع الحقول واختيار النجوم' : 'Please fill all fields and select stars');
+      return;
+    }
+
+    setReviewLoading(true);
+
+    try {
+      await addDoc(collection(db, 'ratings'), {
+        name: reviewFormData.name,
+        comment: reviewFormData.comment,
+        stars: reviewFormData.stars,
+        date: serverTimestamp(),
+      });
+
+      setReviewMessage(isArabic ? 'شكراً على تقييمك! سيظهر قريباً.' : 'Thank you for your review! It will appear soon.');
+      setReviewFormData({ name: '', comment: '', stars: 0 });
+      setHoveredStars(0);
+
+      const ratingsQuery = query(collection(db, 'ratings'), orderBy('date', 'desc'));
+      const ratingsSnapshot = await getDocs(ratingsQuery);
+      const ratingsData = ratingsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Rating[];
+      setRatings(ratingsData);
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      setReviewMessage(isArabic ? 'حدث خطأ. حاول مرة أخرى.' : 'Error occurred. Please try again.');
+    } finally {
+      setReviewLoading(false);
+    }
   };
 
   const content = {
@@ -488,6 +529,71 @@ export default function Home() {
               </div>
             </div>
           )}
+          
+          <div className="mt-16 pt-12 border-t border-border">
+            <h3 className="text-2xl font-bold text-center mb-8 text-accent">📝 {isArabic ? 'أضف تقييمك' : 'Add Your Review'}</h3>
+            <Card className="p-8 bg-background border-border max-w-2xl mx-auto">
+              <form onSubmit={handleSubmitReview} className="space-y-6">
+                <Input
+                  type="text"
+                  placeholder={isArabic ? 'اسمك' : 'Your name'}
+                  value={reviewFormData.name}
+                  onChange={(e) => setReviewFormData({ ...reviewFormData, name: e.target.value })}
+                  className="bg-card border-border"
+                />
+                
+                <Textarea
+                  placeholder={isArabic ? 'تقييمك' : 'Your review'}
+                  value={reviewFormData.comment}
+                  onChange={(e) => setReviewFormData({ ...reviewFormData, comment: e.target.value })}
+                  className="bg-card border-border min-h-24"
+                />
+                
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">{isArabic ? 'التقييم:' : 'Rating:'}</span>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewFormData({ ...reviewFormData, stars: star })}
+                        onMouseEnter={() => setHoveredStars(star)}
+                        onMouseLeave={() => setHoveredStars(0)}
+                        className="transition-transform hover:scale-110"
+                      >
+                        <Star
+                          size={28}
+                          className={`${
+                            star <= (hoveredStars || reviewFormData.stars)
+                              ? 'fill-accent text-accent'
+                              : 'text-gray-600'
+                          } transition-colors`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {reviewMessage && (
+                  <div className={`p-4 rounded text-sm ${
+                    reviewMessage.includes('شكراً') || reviewMessage.includes('Thank')
+                      ? 'bg-green-900/20 text-green-400'
+                      : 'bg-red-900/20 text-red-400'
+                  }`}>
+                    {reviewMessage}
+                  </div>
+                )}
+                
+                <Button
+                  type="submit"
+                  disabled={reviewLoading}
+                  className="w-full bg-accent hover:bg-accent/90 text-black font-bold"
+                >
+                  {reviewLoading ? (isArabic ? 'جاري الإرسال...' : 'Sending...') : (isArabic ? 'إرسال التقييم' : 'Submit Review')}
+                </Button>
+              </form>
+            </Card>
+          </div>
         </div>
       </section>
 
