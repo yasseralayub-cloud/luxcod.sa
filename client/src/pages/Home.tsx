@@ -12,7 +12,6 @@ import { useScrollReveal } from '@/hooks/useScrollReveal';
 emailjs.init('njvn9St5gAnWLOI61');
 
 const VERSION = '4.0.0';
-const BUILD_DATE = new Date().toLocaleDateString('ar-SA');
 
 interface Rating {
   id: string;
@@ -50,20 +49,57 @@ export default function Home() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewMessage, setReviewMessage] = useState('');
   const [hoveredStars, setHoveredStars] = useState(0);
-
-  // Scroll Reveal Hooks
-  const whyWebsiteRef = useScrollReveal();
-  const servicesRef = useScrollReveal();
-  const portfolioRef = useScrollReveal();
-  const whyChooseRef = useScrollReveal();
-  const testimonialsRef = useScrollReveal();
-  const contactRef = useScrollReveal();
+  const [particles, setParticles] = useState<Array<{ id: number; left: number; top: number; delay: number }>>([]);
+  const [visibleElements, setVisibleElements] = useState<Set<string>>(new Set());
 
   const isArabic = language === 'ar';
-  const dir = isArabic ? 'rtl' : 'ltr';
 
+  useScrollReveal();
+
+  // Generate particles on mount
   useEffect(() => {
-    const fetchData = async () => {
+    const newParticles = Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      delay: Math.random() * 5,
+    }));
+    setParticles(newParticles);
+  }, []);
+
+  // Intersection Observer for scroll reveal
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setVisibleElements((prev) => {
+              const next = new Set(prev);
+              next.add(entry.target.id);
+              return next;
+            });
+          } else {
+            setVisibleElements((prev) => {
+              const next = new Set(prev);
+              next.delete(entry.target.id);
+              return next;
+            });
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    document.querySelectorAll('[data-scroll-reveal]').forEach((el) => {
+      observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Load data
+  useEffect(() => {
+    const loadData = async () => {
       try {
         const ratingsQuery = query(collection(db, 'ratings'), orderBy('date', 'desc'));
         const ratingsSnapshot = await getDocs(ratingsQuery);
@@ -87,13 +123,14 @@ export default function Home() {
         })) as Portfolio[];
         setPortfolio(portfolioData);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error loading data:', error);
       }
     };
 
-    fetchData();
+    loadData();
   }, []);
 
+  // Auto-rotate ratings
   useEffect(() => {
     if (ratings.length === 0) return;
     const interval = setInterval(() => {
@@ -199,49 +236,36 @@ export default function Home() {
         cta1: 'ابدأ الآن',
         cta2: 'تواصل معنا',
       },
-      whyWebsite: {
+      why: {
         title: 'لماذا موقع الويب مهم؟',
-        items: [
-          { title: 'المصداقية', desc: 'موقع احترافي يزيد ثقة العملاء بعملك' },
-          { title: 'العملاء', desc: 'وصول أسهل للعملاء المحتملين 24/7' },
-          { title: 'تحسين البحث', desc: 'ظهور أفضل في محركات البحث' },
-          { title: 'المبيعات', desc: 'مبيعات مستمرة حتى أثناء نومك' },
-        ],
+        description: 'في عالم رقمي متسارع، وجودك الإلكتروني ليس خياراً بل ضرورة حتمية',
       },
       services: {
         title: 'خدماتنا',
-        orderBtn: 'اطلب الآن',
+        description: 'نقدم حلولاً رقمية شاملة تناسب احتياجات عملك',
       },
       portfolio: {
         title: 'أعمالنا',
-        preview: 'عرض المشروع',
+        description: 'مشاريع ناجحة أنجزناها لعملائنا الكرام',
       },
-      whyChooseUs: {
+      why_us: {
         title: 'لماذا تختار LuxCod؟',
-        items: [
-          'فريق محترف ومتخصص',
-          'تصاميم عصرية وفاخرة',
-          'دعم فني متواصل',
-          'أسعار تنافسية',
-          'التسليم في الوقت المحدد',
-          'ضمان الجودة',
-        ],
+        description: 'نحن نقدم أفضل الخدمات بأسعار تنافسية',
       },
       testimonials: {
         title: 'آراء عملائنا',
+        description: 'ماذا يقول عملاؤنا عن خدماتنا',
+        add_review: 'أضف تقييمك',
       },
       contact: {
-        title: 'تواصل معنا',
+        title: 'اتصل بنا',
+        description: 'نحن هنا للإجابة على جميع أسئلتك',
         name: 'الاسم',
         email: 'البريد الإلكتروني',
         message: 'الرسالة',
         send: 'إرسال',
-        sending: 'جاري الإرسال...',
       },
-      footer: {
-        text: '© 2024 LuxCod. جميع الحقوق محفوظة.',
-        made: 'صنع بـ ♥ من أجلكم',
-      },
+      footer: 'صنع بـ ♥ من أجلكم',
     },
     en: {
       nav: {
@@ -255,155 +279,185 @@ export default function Home() {
       },
       hero: {
         headline: 'We Build Digital Experiences That Grow Your Business',
-        subheadline: 'A digital agency specialized in website design, applications, and advanced digital services',
+        subheadline: 'A specialized digital agency in designing websites, applications, and advanced digital services',
         cta1: 'Get Started',
         cta2: 'Contact Us',
       },
-      whyWebsite: {
-        title: 'Why Website Matters?',
-        items: [
-          { title: 'Credibility', desc: 'A professional website builds customer trust' },
-          { title: 'Customers', desc: 'Easier access to potential customers 24/7' },
-          { title: 'SEO', desc: 'Better visibility in search engines' },
-          { title: '24/7 Sales', desc: 'Continuous sales even while you sleep' },
-        ],
+      why: {
+        title: 'Why is a Website Important?',
+        description: 'In an accelerated digital world, your online presence is not an option but a necessity',
       },
       services: {
         title: 'Our Services',
-        orderBtn: 'Order Now',
+        description: 'We provide comprehensive digital solutions tailored to your business needs',
       },
       portfolio: {
         title: 'Our Work',
-        preview: 'View Project',
+        description: 'Successful projects we have completed for our clients',
       },
-      whyChooseUs: {
+      why_us: {
         title: 'Why Choose LuxCod?',
-        items: [
-          'Professional and specialized team',
-          'Modern and luxury designs',
-          'Continuous technical support',
-          'Competitive prices',
-          'On-time delivery',
-          'Quality guarantee',
-        ],
+        description: 'We provide the best services at competitive prices',
       },
       testimonials: {
         title: 'Client Reviews',
+        description: 'What our clients say about our services',
+        add_review: 'Add Your Review',
       },
       contact: {
         title: 'Contact Us',
+        description: 'We are here to answer all your questions',
         name: 'Name',
         email: 'Email',
         message: 'Message',
         send: 'Send',
-        sending: 'Sending...',
       },
-      footer: {
-        text: '© 2024 LuxCod. All rights reserved.',
-        made: 'Made with ♥ for you',
-      },
-    },
+      footer: 'Made with ♥ for you',
+    }
   };
 
-  const t = content[language];
+  const currentContent = content[language];
 
   return (
-    <div dir={dir} className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
+      {/* Dynamic Background */}
+      <div className="dynamic-bg" />
+
+      {/* Particles */}
+      <div className="particles">
+        {particles.map((particle) => (
+          <div
+            key={particle.id}
+            className="particle"
+            style={{
+              left: `${particle.left}%`,
+              top: `${particle.top}%`,
+              animationDelay: `${particle.delay}s`,
+            }}
+          />
+        ))}
+      </div>
+
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="container flex items-center justify-between py-4">
-          <a href="#home" onClick={() => document.getElementById('home')?.scrollIntoView({ behavior: 'smooth' })} className="text-2xl font-bold cursor-pointer hover:opacity-80 transition-opacity" style={{ color: '#d4af37' }}>LuxCod</a>
-          <div className="text-xs text-gray-500 ml-2">v{VERSION}</div>
-          
-          <div className="hidden md:flex items-center gap-8">
-            {Object.entries(t.nav).map(([key, label]) => (
-              <a key={key} href={`#${key}`} className="text-sm font-medium hover:text-accent transition-colors">
-                {label}
+      <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-gold">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="text-2xl font-bold gradient-text cursor-pointer hover:scale-105 transition-transform"
+          >
+            LuxCod <span className="text-sm text-gold ml-2">v{VERSION}</span>
+          </div>
+
+          {/* Desktop Menu */}
+          <div className="hidden md:flex gap-8 items-center">
+            {Object.entries(currentContent.nav).map(([key, value]) => (
+              <a
+                key={key}
+                href={`#${key}`}
+                className="link-premium text-sm font-medium"
+              >
+                {value}
               </a>
             ))}
-          </div>
-          
-          <div className="flex items-center gap-4">
             <button
               onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
-              className="px-3 py-1 text-sm border border-accent text-accent rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="px-4 py-2 rounded-lg bg-gold/20 text-gold hover:bg-gold/30 transition-all"
             >
               {language === 'ar' ? 'EN' : 'AR'}
             </button>
-            
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden"
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
-        
+
+        {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-card border-t border-border">
-            <div className="container py-4 flex flex-col gap-4">
-              {Object.entries(t.nav).map(([key, label]) => (
-                <a
-                  key={key}
-                  href={`#${key}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-sm font-medium hover:text-accent transition-colors"
-                >
-                  {label}
-                </a>
-              ))}
-            </div>
+          <div className="md:hidden bg-background/95 backdrop-blur-md border-t border-gold p-4 space-y-4">
+            {Object.entries(currentContent.nav).map(([key, value]) => (
+              <a
+                key={key}
+                href={`#${key}`}
+                className="block link-premium text-sm font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {value}
+              </a>
+            ))}
+            <button
+              onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
+              className="w-full px-4 py-2 rounded-lg bg-gold/20 text-gold hover:bg-gold/30 transition-all"
+            >
+              {language === 'ar' ? 'EN' : 'AR'}
+            </button>
           </div>
         )}
       </nav>
 
       {/* Hero Section */}
-      <section
-        id="home"
-        className="pt-32 pb-20 md:pt-40 md:pb-32 relative overflow-hidden"
-        style={{
-          backgroundImage: `url('https://d2xsxph8kpxj0f.cloudfront.net/310519663463093499/WZrBg3gahPGwwsPaaHVidr/hero-background-GteUJJoV5NvqfgQJxCrUu9.webp')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        <div className="absolute inset-0 bg-black/50"></div>
-        <div className="container relative z-10">
-          <div className="max-w-3xl mx-auto text-center animate-fade-in">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 text-gradient">
-              {t.hero.headline}
-            </h1>
-            <p className="text-lg md:text-xl mb-8 text-gray-300">
-              {t.hero.subheadline}
-            </p>
-            <div className="flex flex-col md:flex-row gap-4 justify-center">
-              <Button className="btn-luxury" onClick={() => handleWhatsAppClick('مرحبا، أريد إنشاء موقع ويب')}>
-                {t.hero.cta1}
-              </Button>
-              <Button className="btn-luxury-outline" onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}>
-                {t.hero.cta2}
-              </Button>
-            </div>
+      <section id="home" className="pt-32 pb-20 px-4 relative">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 
+            className="text-4xl md:text-6xl font-bold mb-6 gradient-text animate-fade-in-up"
+            data-scroll-reveal
+          >
+            {currentContent.hero.headline}
+          </h1>
+          <p 
+            className="text-lg md:text-xl text-gray-300 mb-8 animate-fade-in-up stagger-1"
+            data-scroll-reveal
+          >
+            {currentContent.hero.subheadline}
+          </p>
+          <div className="flex gap-4 justify-center flex-wrap animate-fade-in-up stagger-2" data-scroll-reveal>
+            <Button className="btn-premium px-8 py-3">
+              {currentContent.hero.cta1}
+            </Button>
+            <Button 
+              variant="outline" 
+              className="px-8 py-3 border-gold text-gold hover:bg-gold/10"
+              onClick={() => handleWhatsAppClick('مرحباً، أود التواصل معكم')}
+            >
+              {currentContent.hero.cta2}
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* Why Website Matters */}
-      <section id="why" className="section-padding bg-card" ref={whyWebsiteRef.ref}>
-        <div className={`container transition-all duration-700 ${whyWebsiteRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 animate-slide-up">{t.whyWebsite.title}</h2>
-          <div className="grid md:grid-cols-4 gap-8">
-            {t.whyWebsite.items.map((item, idx) => (
-              <Card 
-                key={idx} 
-                className="p-6 bg-background border-border hover:border-accent transition-all hover:shadow-lg hover:shadow-accent/20 hover-lift"
-                style={{
-                  animation: whyWebsiteRef.isVisible ? `slideUp 0.6s ease-out ${idx * 0.1}s both` : 'none',
-                }}
+      {/* Why Website Section */}
+      <section id="why" className="section-premium py-20 px-4">
+        <div className="max-w-4xl mx-auto">
+          <h2 
+            className="text-3xl md:text-4xl font-bold mb-4 gradient-text text-center animate-fade-in-up"
+            data-scroll-reveal
+          >
+            {currentContent.why.title}
+          </h2>
+          <p 
+            className="text-center text-gray-300 mb-12 animate-fade-in-up stagger-1"
+            data-scroll-reveal
+          >
+            {currentContent.why.description}
+          </p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { icon: '📱', title: isArabic ? 'متاح 24/7' : 'Available 24/7', desc: isArabic ? 'عملك متاح دائماً للعملاء' : 'Your business is always available' },
+              { icon: '🎯', title: isArabic ? 'استهداف دقيق' : 'Precise Targeting', desc: isArabic ? 'وصول للعملاء المناسبين' : 'Reach the right customers' },
+              { icon: '📈', title: isArabic ? 'نمو مستمر' : 'Continuous Growth', desc: isArabic ? 'زيادة المبيعات والأرباح' : 'Increase sales and profits' },
+            ].map((item, i) => (
+              <Card
+                key={i}
+                className={`card-premium p-6 text-center hover-lift animate-fade-in-up stagger-${i + 1}`}
+                data-scroll-reveal
+                id={`why-card-${i}`}
               >
-                <CheckCircle className="w-8 h-8 text-accent mb-4" />
-                <h3 className="text-lg font-bold mb-2">{item.title}</h3>
+                <div className="text-4xl mb-4">{item.icon}</div>
+                <h3 className="text-xl font-bold mb-2 text-gold">{item.title}</h3>
                 <p className="text-gray-400">{item.desc}</p>
               </Card>
             ))}
@@ -412,86 +466,110 @@ export default function Home() {
       </section>
 
       {/* Services Section */}
-      <section id="services" className="section-padding" ref={servicesRef.ref}>
-        <div className={`container transition-all duration-700 ${servicesRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 animate-slide-up">{t.services.title}</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {services.length > 0 ? (
-              services.map((service, idx) => (
-                <Card 
-                  key={service.id} 
-                  className="p-6 bg-card border-border hover:border-accent transition-all hover:shadow-lg hover:shadow-accent/20 hover-lift"
-                  style={{
-                    animation: servicesRef.isVisible ? `slideUp 0.6s ease-out ${idx * 0.1}s both` : 'none',
-                  }}
+      <section id="services" className="py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h2 
+            className="text-3xl md:text-4xl font-bold mb-4 gradient-text text-center animate-fade-in-up"
+            data-scroll-reveal
+          >
+            {currentContent.services.title}
+          </h2>
+          <p 
+            className="text-center text-gray-300 mb-12 animate-fade-in-up stagger-1"
+            data-scroll-reveal
+          >
+            {currentContent.services.description}
+          </p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {services.map((service, i) => (
+              <Card
+                key={service.id}
+                className={`card-premium p-6 hover-lift animate-fade-in-up stagger-${(i % 3) + 1}`}
+                data-scroll-reveal
+                id={`service-${service.id}`}
+              >
+                <h3 className="text-xl font-bold mb-3 text-gold">{service.name}</h3>
+                <p className="text-gray-300 mb-4">{service.description}</p>
+                <Button
+                  className="w-full btn-premium"
+                  onClick={() => handleWhatsAppClick(service.whatsappMessage)}
                 >
-                  <h3 className="text-xl font-bold mb-3 text-accent">{service.name}</h3>
-                  <p className="text-gray-400 mb-6">{service.description}</p>
-                  <Button
-                    className="btn-luxury w-full"
-                    onClick={() => handleWhatsAppClick(service.whatsappMessage)}
-                  >
-                    {t.services.orderBtn}
-                  </Button>
-                </Card>
-              ))
-            ) : (
-              <p className="text-center text-gray-400 col-span-full">{isArabic ? 'جاري تحميل الخدمات...' : 'Loading services...'}</p>
-            )}
+                  <MessageCircle size={16} className="mr-2" />
+                  {isArabic ? 'تواصل' : 'Contact'}
+                </Button>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Portfolio Section */}
-      <section id="portfolio" className="section-padding bg-card" ref={portfolioRef.ref}>
-        <div className={`container transition-all duration-700 ${portfolioRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 animate-slide-up">{t.portfolio.title}</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {portfolio.length > 0 ? (
-              portfolio.map((project, idx) => (
-                <Card 
-                  key={project.id} 
-                  className="overflow-hidden bg-background border-border hover:border-accent transition-all group cursor-pointer hover-lift"
-                  style={{
-                    animation: portfolioRef.isVisible ? `slideUp 0.6s ease-out ${idx * 0.1}s both` : 'none',
-                  }}
-                >
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2 group-hover:text-accent transition-colors">{project.name}</h3>
-                    <p className="text-gray-400 mb-4">{project.description}</p>
-                    <a
-                      href={project.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center text-accent hover:gap-2 transition-all"
-                    >
-                      {t.portfolio.preview}
-                      <ChevronRight size={16} className={isArabic ? 'mr-2' : 'ml-2'} />
-                    </a>
-                  </div>
-                </Card>
-              ))
-            ) : (
-              <p className="text-center text-gray-400 col-span-full">{isArabic ? 'جاري تحميل المشاريع...' : 'Loading projects...'}</p>
-            )}
+      <section id="portfolio" className="section-premium py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h2 
+            className="text-3xl md:text-4xl font-bold mb-4 gradient-text text-center animate-fade-in-up"
+            data-scroll-reveal
+          >
+            {currentContent.portfolio.title}
+          </h2>
+          <p 
+            className="text-center text-gray-300 mb-12 animate-fade-in-up stagger-1"
+            data-scroll-reveal
+          >
+            {currentContent.portfolio.description}
+          </p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {portfolio.map((project, i) => (
+              <a
+                key={project.id}
+                href={project.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`card-premium p-6 hover-lift animate-fade-in-up stagger-${(i % 3) + 1} block`}
+                data-scroll-reveal
+                id={`portfolio-${project.id}`}
+              >
+                <h3 className="text-xl font-bold mb-2 text-gold">{project.name}</h3>
+                <p className="text-gray-300 mb-4">{project.description}</p>
+                <div className="flex items-center text-gold hover:text-gold/80 transition-colors">
+                  {isArabic ? 'عرض المشروع' : 'View Project'}
+                  <ChevronRight size={16} className="ml-2" />
+                </div>
+              </a>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Why Choose Us */}
-      <section id="why_us" className="section-padding" ref={whyChooseRef.ref}>
-        <div className={`container transition-all duration-700 ${whyChooseRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 animate-slide-up">{t.whyChooseUs.title}</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {t.whyChooseUs.items.map((item, idx) => (
-              <div 
-                key={idx} 
-                className="flex items-center gap-4"
-                style={{
-                  animation: whyChooseRef.isVisible ? `slideUp 0.6s ease-out ${idx * 0.1}s both` : 'none',
-                }}
+      {/* Why Us Section */}
+      <section id="why_us" className="py-20 px-4">
+        <div className="max-w-4xl mx-auto">
+          <h2 
+            className="text-3xl md:text-4xl font-bold mb-4 gradient-text text-center animate-fade-in-up"
+            data-scroll-reveal
+          >
+            {currentContent.why_us.title}
+          </h2>
+          <p 
+            className="text-center text-gray-300 mb-12 animate-fade-in-up stagger-1"
+            data-scroll-reveal
+          >
+            {currentContent.why_us.description}
+          </p>
+          <div className="space-y-4">
+            {[
+              isArabic ? '✨ فريق متخصص وذو خبرة عالية' : '✨ Specialized and experienced team',
+              isArabic ? '💎 تصاميم فاخرة وحديثة' : '💎 Luxury and modern designs',
+              isArabic ? '🚀 تطبيقات سريعة وآمنة' : '🚀 Fast and secure applications',
+              isArabic ? '📊 دعم فني 24/7' : '📊 24/7 Technical support',
+            ].map((item, i) => (
+              <div
+                key={i}
+                className={`flex items-center gap-4 p-4 card-premium hover-lift animate-fade-in-up stagger-${i + 1}`}
+                data-scroll-reveal
+                id={`why-us-item-${i}`}
               >
-                <CheckCircle className="w-6 h-6 text-accent flex-shrink-0" />
+                <CheckCircle size={24} className="text-gold flex-shrink-0" />
                 <span className="text-lg">{item}</span>
               </div>
             ))}
@@ -500,182 +578,180 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="section-padding bg-card" ref={testimonialsRef.ref}>
-        <div className={`container transition-all duration-700 ${testimonialsRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 animate-slide-up">{t.testimonials.title}</h2>
-          
+      <section id="testimonials" className="section-premium py-20 px-4">
+        <div className="max-w-4xl mx-auto">
+          <h2 
+            className="text-3xl md:text-4xl font-bold mb-4 gradient-text text-center animate-fade-in-up"
+            data-scroll-reveal
+          >
+            {currentContent.testimonials.title}
+          </h2>
+          <p 
+            className="text-center text-gray-300 mb-12 animate-fade-in-up stagger-1"
+            data-scroll-reveal
+          >
+            {currentContent.testimonials.description}
+          </p>
+
+          {/* Current Rating Display */}
           {ratings.length > 0 && (
-            <div className="mb-12">
-              <Card className="p-8 bg-background border-border">
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(ratings[currentRatingIndex].stars)].map((_, i) => (
-                    <Star key={i} size={20} className="fill-accent text-accent" />
-                  ))}
-                </div>
-                <p className="text-lg mb-6 italic">"{ratings[currentRatingIndex].comment}"</p>
-                <p className="font-semibold text-accent">{ratings[currentRatingIndex].name}</p>
-              </Card>
-              
-              <div className="flex justify-center gap-2 mt-6">
-                {ratings.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentRatingIndex(idx)}
-                    className={`w-3 h-3 rounded-full transition-colors ${
-                      idx === currentRatingIndex ? 'bg-accent' : 'bg-gray-600'
-                    }`}
+            <Card 
+              className="card-premium p-8 mb-12 animate-fade-in-up stagger-2 hover-lift"
+              data-scroll-reveal
+              id="current-rating"
+            >
+              <div className="flex gap-2 mb-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    size={24}
+                    className={i < ratings[currentRatingIndex].stars ? 'fill-gold text-gold' : 'text-gray-600'}
                   />
                 ))}
               </div>
-            </div>
-          )}
-          
-          <div className="mt-16 pt-12 border-t border-border">
-            <h3 className="text-2xl font-bold text-center mb-8 text-accent">📝 {isArabic ? 'أضف تقييمك' : 'Add Your Review'}</h3>
-            <Card className="p-8 bg-background border-border max-w-2xl mx-auto">
-              <form onSubmit={handleSubmitReview} className="space-y-6">
-                <Input
-                  type="text"
-                  placeholder={isArabic ? 'اسمك' : 'Your name'}
-                  value={reviewFormData.name}
-                  onChange={(e) => setReviewFormData({ ...reviewFormData, name: e.target.value })}
-                  className="bg-card border-border"
-                />
-                
-                <Textarea
-                  placeholder={isArabic ? 'تقييمك' : 'Your review'}
-                  value={reviewFormData.comment}
-                  onChange={(e) => setReviewFormData({ ...reviewFormData, comment: e.target.value })}
-                  className="bg-card border-border min-h-24"
-                />
-                
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold">{isArabic ? 'التقييم:' : 'Rating:'}</span>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setReviewFormData({ ...reviewFormData, stars: star })}
-                        onMouseEnter={() => setHoveredStars(star)}
-                        onMouseLeave={() => setHoveredStars(0)}
-                        className="transition-transform hover:scale-110"
-                      >
-                        <Star
-                          size={28}
-                          className={`${
-                            star <= (hoveredStars || reviewFormData.stars)
-                              ? 'fill-accent text-accent'
-                              : 'text-gray-600'
-                          } transition-colors`}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                {reviewMessage && (
-                  <div className={`p-4 rounded text-sm ${
-                    reviewMessage.includes('شكراً') || reviewMessage.includes('Thank')
-                      ? 'bg-green-900/20 text-green-400'
-                      : 'bg-red-900/20 text-red-400'
-                  }`}>
-                    {reviewMessage}
-                  </div>
-                )}
-                
-                <Button
-                  type="submit"
-                  disabled={reviewLoading}
-                  className="w-full bg-accent hover:bg-accent/90 text-black font-bold"
-                >
-                  {reviewLoading ? (isArabic ? 'جاري الإرسال...' : 'Sending...') : (isArabic ? 'إرسال التقييم' : 'Submit Review')}
-                </Button>
-              </form>
+              <p className="text-lg mb-4 text-gray-300">{ratings[currentRatingIndex].comment}</p>
+              <p className="text-gold font-semibold">{ratings[currentRatingIndex].name}</p>
             </Card>
-          </div>
-        </div>
-      </section>
+          )}
 
-      {/* Contact Section */}
-      <section id="contact" className="section-padding" ref={contactRef.ref}>
-        <div className={`container transition-all duration-700 ${contactRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 animate-slide-up">{t.contact.title}</h2>
-          <Card className="p-8 bg-card border-border max-w-2xl mx-auto">
-            <form onSubmit={handleSubmitForm} className="space-y-6">
-              <input
-                type="text"
-                name="honeypot"
-                value={formData.honeypot}
-                onChange={(e) => setFormData({ ...formData, honeypot: e.target.value })}
-                style={{ display: 'none' }}
-              />
-              
+          {/* Add Review Form */}
+          <Card 
+            className="card-premium p-8 animate-fade-in-up stagger-3"
+            data-scroll-reveal
+            id="review-form"
+          >
+            <h3 className="text-2xl font-bold mb-6 text-gold">{currentContent.testimonials.add_review}</h3>
+            <form onSubmit={handleSubmitReview} className="space-y-4">
               <Input
-                type="text"
-                placeholder={t.contact.name}
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                className="bg-background border-border text-foreground"
-              />
-              <Input
-                type="email"
-                placeholder={t.contact.email}
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-                className="bg-background border-border text-foreground"
+                placeholder={currentContent.contact.name}
+                value={reviewFormData.name}
+                onChange={(e) => setReviewFormData({ ...reviewFormData, name: e.target.value })}
+                className="input-premium"
               />
               <Textarea
-                placeholder={t.contact.message}
-                value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                required
-                className="bg-background border-border text-foreground"
+                placeholder={isArabic ? 'أضف تقييمك' : 'Add your review'}
+                value={reviewFormData.comment}
+                onChange={(e) => setReviewFormData({ ...reviewFormData, comment: e.target.value })}
+                className="input-premium"
               />
-              
-              <Button
-                type="submit"
-                disabled={loading}
-                className="btn-luxury w-full"
-              >
-                {loading ? t.contact.sending : t.contact.send}
-              </Button>
-              
-              {formMessage && (
-                <p className={`text-center ${
-                  formMessage.includes('Error') ? 'text-red-500' : 'text-green-500'
-                }`}>
-                  {formMessage}
+              <div className="flex gap-2 mb-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setReviewFormData({ ...reviewFormData, stars: i + 1 })}
+                    onMouseEnter={() => setHoveredStars(i + 1)}
+                    onMouseLeave={() => setHoveredStars(0)}
+                    className="icon-hover"
+                  >
+                    <Star
+                      size={32}
+                      className={
+                        i < (hoveredStars || reviewFormData.stars)
+                          ? 'fill-gold text-gold'
+                          : 'text-gray-600'
+                      }
+                    />
+                  </button>
+                ))}
+              </div>
+              {reviewMessage && (
+                <p className={`text-sm ${reviewMessage.includes('شكراً') || reviewMessage.includes('Thank') ? 'text-green-500' : 'text-red-500'}`}>
+                  {reviewMessage}
                 </p>
               )}
+              <Button
+                type="submit"
+                className="w-full btn-premium"
+                disabled={reviewLoading}
+              >
+                {reviewLoading ? (isArabic ? 'جاري الإرسال...' : 'Sending...') : (isArabic ? 'إرسال التقييم' : 'Submit Review')}
+              </Button>
             </form>
           </Card>
         </div>
       </section>
 
-      {/* Floating WhatsApp Button */}
+      {/* Contact Section */}
+      <section id="contact" className="py-20 px-4">
+        <div className="max-w-2xl mx-auto">
+          <h2 
+            className="text-3xl md:text-4xl font-bold mb-4 gradient-text text-center animate-fade-in-up"
+            data-scroll-reveal
+          >
+            {currentContent.contact.title}
+          </h2>
+          <p 
+            className="text-center text-gray-300 mb-12 animate-fade-in-up stagger-1"
+            data-scroll-reveal
+          >
+            {currentContent.contact.description}
+          </p>
+
+          <Card 
+            className="card-premium p-8 animate-fade-in-up stagger-2"
+            data-scroll-reveal
+            id="contact-form"
+          >
+            <form onSubmit={handleSubmitForm} className="space-y-4">
+              <Input
+                placeholder={currentContent.contact.name}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="input-premium"
+              />
+              <Input
+                type="email"
+                placeholder={currentContent.contact.email}
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="input-premium"
+              />
+              <input
+                type="text"
+                style={{ display: 'none' }}
+                value={formData.honeypot}
+                onChange={(e) => setFormData({ ...formData, honeypot: e.target.value })}
+                tabIndex={-1}
+                autoComplete="off"
+              />
+              <Textarea
+                placeholder={currentContent.contact.message}
+                value={formData.message}
+                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                className="input-premium"
+              />
+              {formMessage && (
+                <p className={`text-sm ${formMessage.includes('بنجاح') || formMessage.includes('successfully') ? 'text-green-500' : 'text-red-500'}`}>
+                  {formMessage}
+                </p>
+              )}
+              <Button
+                type="submit"
+                className="w-full btn-premium"
+                disabled={loading}
+              >
+                {loading ? (isArabic ? 'جاري الإرسال...' : 'Sending...') : currentContent.contact.send}
+              </Button>
+            </form>
+          </Card>
+        </div>
+      </section>
+
+      {/* WhatsApp Button */}
       <button
-        onClick={() => handleWhatsAppClick('مرحبا، أريد التواصل مع LuxCod')}
-        className="fixed bottom-8 left-8 w-16 h-16 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-125 transition-all z-40 animate-bounce"
+        onClick={() => handleWhatsAppClick('مرحباً، أود التواصل معكم')}
+        className="fixed left-6 bottom-6 w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white shadow-gold-lg hover:scale-110 transition-transform animate-pulse z-40"
         title="WhatsApp"
-        style={{
-          background: 'linear-gradient(135deg, #25d366 0%, #20ba58 100%)',
-          boxShadow: '0 0 40px rgba(37, 211, 102, 0.8), 0 0 80px rgba(37, 211, 102, 0.4)',
-        }}
       >
         <MessageCircle size={28} />
       </button>
 
       {/* Footer */}
-      <footer className="bg-card border-t border-border py-8">
-        <div className="container text-center text-gray-400">
-          <p className="mb-2">{t.footer.text}</p>
-          <p className="text-sm">
-            {t.footer.made}
-          </p>
-        </div>
+      <footer className="border-t border-gold py-8 px-4 text-center text-gray-400">
+        <p className="text-sm">
+          {currentContent.footer}
+        </p>
       </footer>
     </div>
   );
