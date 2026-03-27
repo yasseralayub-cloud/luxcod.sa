@@ -379,11 +379,11 @@ export default function Home() {
       {/* Services Section */}
       <section id="services" className="section-padding">
         <div className="container">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">{t.services.title}</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 animate-slide-up">{t.services.title}</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {services.length > 0 ? (
-              services.map((service) => (
-                <Card key={service.id} className="p-6 bg-card border-border hover:border-accent transition-all hover:shadow-lg hover:shadow-accent/20">
+              services.map((service, idx) => (
+                <Card key={service.id} className="p-6 bg-card border-border hover:border-accent transition-all hover:shadow-lg hover:shadow-accent/20 hover-lift animate-fade-in" style={{ animationDelay: `${idx * 0.1}s` }}>
                   <h3 className="text-xl font-bold mb-3 text-accent">{service.name}</h3>
                   <p className="text-gray-400 mb-6">{service.description}</p>
                   <Button
@@ -404,11 +404,11 @@ export default function Home() {
       {/* Portfolio Section */}
       <section id="portfolio" className="section-padding bg-card">
         <div className="container">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">{t.portfolio.title}</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 animate-slide-up">{t.portfolio.title}</h2>
           <div className="grid md:grid-cols-3 gap-8">
             {portfolio.length > 0 ? (
-              portfolio.map((project) => (
-                <Card key={project.id} className="overflow-hidden bg-background border-border hover:border-accent transition-all group cursor-pointer">
+              portfolio.map((project, idx) => (
+                <Card key={project.id} className="overflow-hidden bg-background border-border hover:border-accent transition-all group cursor-pointer hover-lift animate-fade-in" style={{ animationDelay: `${idx * 0.1}s` }}>
                   <div className="p-6">
                     <h3 className="text-xl font-bold mb-2 group-hover:text-accent transition-colors">{project.name}</h3>
                     <p className="text-gray-400 mb-4">{project.description}</p>
