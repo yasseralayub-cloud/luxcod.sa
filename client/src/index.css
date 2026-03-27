@@ -37,7 +37,7 @@
 :root {
   --primary: #1a1a1a;
   --primary-foreground: #ffffff;
-  --chart-1: #d4af37;
+  --chart-1: #ffd700;
   --chart-2: #b8860b;
   --chart-3: #8b6914;
   --chart-4: #6b5310;
@@ -53,13 +53,13 @@
   --secondary-foreground: #d4af37;
   --muted: #3a3a3a;
   --muted-foreground: #999999;
-  --accent: #d4af37;
+  --accent: #ffd700;
   --accent-foreground: #0f0f0f;
   --destructive: #ff4444;
   --destructive-foreground: #ffffff;
   --border: #2a2a2a;
   --input: #1a1a1a;
-  --ring: #d4af37;
+  --ring: #ffd700;
 }
 
 @layer base {

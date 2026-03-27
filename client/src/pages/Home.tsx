@@ -11,7 +11,7 @@ import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 emailjs.init('njvn9St5gAnWLOI61');
 
-const VERSION = '3.0.0';
+const VERSION = '4.0.0';
 const BUILD_DATE = new Date().toLocaleDateString('ar-SA');
 
 interface Rating {
@@ -271,7 +271,8 @@ export default function Home() {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="container flex items-center justify-between py-4">
-          <div className="text-2xl font-bold text-accent">LuxCod</div>
+          <a href="#home" onClick={() => document.getElementById('home')?.scrollIntoView({ behavior: 'smooth' })} className="text-2xl font-bold cursor-pointer hover:opacity-80 transition-opacity" style={{ color: '#d4af37' }}>LuxCod</a>
+          <div className="text-xs text-gray-500 ml-2">v{VERSION}</div>
           
           <div className="hidden md:flex items-center gap-8">
             {Object.entries(t.nav).map(([key, label]) => (
@@ -551,13 +552,14 @@ export default function Home() {
       {/* Floating WhatsApp Button */}
       <button
         onClick={() => handleWhatsAppClick('مرحبا، أريد التواصل مع LuxCod')}
-        className="fixed bottom-8 left-8 w-14 h-14 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-110 transition-all z-40 animate-pulse"
+        className="fixed bottom-8 left-8 w-16 h-16 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-125 transition-all z-40 animate-bounce"
         title="WhatsApp"
         style={{
-          boxShadow: '0 0 30px rgba(34, 197, 94, 0.6)',
+          background: 'linear-gradient(135deg, #25d366 0%, #20ba58 100%)',
+          boxShadow: '0 0 40px rgba(37, 211, 102, 0.8), 0 0 80px rgba(37, 211, 102, 0.4)',
         }}
       >
-        <MessageCircle size={24} />
+        <MessageCircle size={28} />
       </button>
 
       {/* Footer */}
