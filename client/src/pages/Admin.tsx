@@ -1,13 +1,14 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { LogOut, Plus, Edit2, Trash2, Save, Eye, EyeOff, Lock, Loader } from 'lucide-react';
+import { LogOut, Plus, Edit2, Trash2, Save, Eye, EyeOff, Lock, Loader, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import { createOTP, verifyOTP, getOTPStatus, clearOTP } from '@/lib/otp';
-import emailjs from '@emailjs/browser';
+import { createOTP, verifyOTP, getOTPStatus, clearOTP, sendOTPEmail } from '@/lib/otp-emailjs';
 
 interface Service {
   id: string;
@@ -41,17 +42,22 @@ export default function Admin() {
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [activeTab, setActiveTab] = useState('services');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [showPasswordSettings, setShowPasswordSettings] = useState(false);
+  
+  // OTP States
   const [show2FA, setShow2FA] = useState(false);
   const [twoFACode, setTwoFACode] = useState('');
+  const [otpMessage, setOtpMessage] = useState('');
+  const [otpStatus, setOtpStatus] = useState(getOTPStatus());
+  const [loading, setLoading] = useState(false);
+  const [sendingOTP, setSendingOTP] = useState(false);
+  const [otpError, setOtpError] = useState(false);
+  
+  // Password Settings
+  const [showPasswordSettings, setShowPasswordSettings] = useState(false);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordMessage, setPasswordMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [otpMessage, setOtpMessage] = useState('');
-  const [otpStatus, setOtpStatus] = useState(getOTPStatus());
-  const [otpAttempts, setOtpAttempts] = useState(0);
   
   // Form states
   const [serviceForm, setServiceForm] = useState({ name: '', description: '', whatsappMessage: '' });
@@ -74,6 +80,7 @@ export default function Admin() {
         setOtpStatus(status);
         
         if (status.expired && status.exists) {
+          setOtpError(true);
           setOtpMessage('انتهت صلاحية الرمز. يرجى طلب رمز جديد');
         }
       }, 1000);
@@ -86,10 +93,12 @@ export default function Admin() {
     e.preventDefault();
     setLoading(true);
     setOtpMessage('');
+    setOtpError(false);
     
     try {
       if (!email) {
         setOtpMessage('يرجى إدخال البريد الإلكتروني');
+        setOtpError(true);
         setLoading(false);
         return;
       }
@@ -97,183 +106,139 @@ export default function Admin() {
       const storedPassword = localStorage.getItem('luxcod-admin-password') || 'luxcod123';
       if (password !== storedPassword) {
         setOtpMessage('كلمة المرور غير صحيحة');
+        setOtpError(true);
         setLoading(false);
         return;
       }
-      
+
       // Generate OTP
       const otpData = createOTP(email);
-      const expirationTime = new Date(otpData.expiresAt).toLocaleTimeString('ar-SA');
       
       // Send OTP via EmailJS
-      try {
-        await emailjs.send(
-          'service_tllf68q',
-          'template_j8bjlhw',
-          {
-            to_email: email,
-            passcode: otpData.code,
-            time: expirationTime
-          }
-        );
-        
+      setSendingOTP(true);
+      const result = await sendOTPEmail(email, otpData.code);
+      setSendingOTP(false);
+
+      if (result.success) {
         setShow2FA(true);
-        setPassword('');
-        setOtpMessage('✅ تم إرسال رمز التحقق إلى بريدك الإلكتروني');
-        setOtpAttempts(0);
-      } catch (emailError) {
-        console.error('EmailJS Error:', emailError);
+        setOtpMessage(result.message);
+        setOtpError(false);
+      } else {
+        setOtpMessage(result.message);
+        setOtpError(true);
         clearOTP();
-        setOtpMessage('❌ حدث خطأ في إرسال البريد. يرجى المحاولة لاحقاً');
       }
+    } catch (error) {
+      console.error('Login error:', error);
+      setOtpMessage('حدث خطأ أثناء محاولة الدخول');
+      setOtpError(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerify2FA = (e: React.FormEvent) => {
+  const handleVerifyOTP = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!twoFACode) {
       setOtpMessage('يرجى إدخال رمز التحقق');
+      setOtpError(true);
       return;
     }
-    
+
     const result = verifyOTP(twoFACode);
     
     if (result.valid) {
-      localStorage.setItem('luxcod-admin-auth', 'true');
       setAuthenticated(true);
-      setTwoFACode('');
+      localStorage.setItem('luxcod-admin-auth', 'true');
       setShow2FA(false);
+      setTwoFACode('');
       setOtpMessage('');
+      setOtpError(false);
       fetchData();
     } else {
-      setOtpAttempts(otpAttempts + 1);
       setOtpMessage(result.message);
-      
-      // Check if max attempts reached
-      const status = getOTPStatus();
-      if (status.remainingAttempts <= 0) {
-        setShow2FA(false);
-        setTwoFACode('');
-        setOtpMessage('تم تجاوز عدد المحاولات. يرجى محاولة الدخول مرة أخرى');
-      }
-    }
-  };
-
-  const handleResendOTP = async () => {
-    setLoading(true);
-    setOtpMessage('');
-    
-    try {
-      clearOTP();
-      const otpData = createOTP(email);
-      const expirationTime = new Date(otpData.expiresAt).toLocaleTimeString('ar-SA');
-      
-      await emailjs.send(
-        'service_tllf68q',
-        'template_j8bjlhw',
-        {
-          to_email: email,
-          passcode: otpData.code,
-          time: expirationTime
-        }
-      );
-      
+      setOtpError(true);
       setTwoFACode('');
-      setOtpAttempts(0);
-      setOtpMessage('✅ تم إرسال رمز جديد إلى بريدك الإلكتروني');
+    }
+  };
+
+  const handleRequestNewOTP = async () => {
+    setSendingOTP(true);
+    setOtpMessage('');
+    setOtpError(false);
+
+    try {
+      const otpData = createOTP(email);
+      const result = await sendOTPEmail(email, otpData.code);
+
+      if (result.success) {
+        setOtpMessage(result.message);
+        setOtpError(false);
+        setTwoFACode('');
+      } else {
+        setOtpMessage(result.message);
+        setOtpError(true);
+      }
     } catch (error) {
-      console.error('Error resending OTP:', error);
-      setOtpMessage('❌ حدث خطأ في إرسال الرمز الجديد');
+      console.error('Error requesting new OTP:', error);
+      setOtpMessage('خطأ في طلب رمز جديد');
+      setOtpError(true);
     } finally {
-      setLoading(false);
+      setSendingOTP(false);
     }
-  };
-
-  const handleChangePassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    const storedPassword = localStorage.getItem('luxcod-admin-password') || 'luxcod123';
-    
-    if (oldPassword !== storedPassword) {
-      setPasswordMessage('كلمة المرور القديمة غير صحيحة');
-      return;
-    }
-    
-    if (newPassword !== confirmPassword) {
-      setPasswordMessage('كلمة المرور الجديدة غير متطابقة');
-      return;
-    }
-    
-    if (newPassword.length < 6) {
-      setPasswordMessage('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
-      return;
-    }
-    
-    localStorage.setItem('luxcod-admin-password', newPassword);
-    setPasswordMessage('✅ تم تغيير كلمة المرور بنجاح');
-    setOldPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setTimeout(() => {
-      setShowPasswordSettings(false);
-      setPasswordMessage('');
-    }, 2000);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('luxcod-admin-auth');
-    setAuthenticated(false);
   };
 
   const fetchData = async () => {
     try {
       const servicesSnapshot = await getDocs(collection(db, 'services'));
-      const servicesData = servicesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Service[];
-      setServices(servicesData);
+      setServices(servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service)));
 
       const portfolioSnapshot = await getDocs(collection(db, 'portfolio'));
-      const portfolioData = portfolioSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Portfolio[];
-      setPortfolio(portfolioData);
+      setPortfolio(portfolioSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Portfolio)));
 
       const ratingsSnapshot = await getDocs(collection(db, 'ratings'));
-      const ratingsData = ratingsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Rating[];
-      setRatings(ratingsData);
+      setRatings(ratingsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Rating)));
     } catch (error) {
       console.error('Error fetching data:', error);
     }
   };
 
-  const handleAddService = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogout = () => {
+    setAuthenticated(false);
+    localStorage.removeItem('luxcod-admin-auth');
+    setEmail('');
+    setPassword('');
+    setShow2FA(false);
+    setTwoFACode('');
+    clearOTP();
+  };
+
+  const handleAddService = async () => {
+    if (!serviceForm.name || !serviceForm.description) {
+      alert('يرجى ملء جميع الحقول');
+      return;
+    }
     try {
       await addDoc(collection(db, 'services'), serviceForm);
       setServiceForm({ name: '', description: '', whatsappMessage: '' });
-      setEditingId(null);
       fetchData();
     } catch (error) {
       console.error('Error adding service:', error);
     }
   };
 
-  const handleUpdateService = async (id: string) => {
+  const handleAddPortfolio = async () => {
+    if (!portfolioForm.name || !portfolioForm.description) {
+      alert('يرجى ملء جميع الحقول');
+      return;
+    }
     try {
-      await updateDoc(doc(db, 'services', id), serviceForm);
-      setServiceForm({ name: '', description: '', whatsappMessage: '' });
-      setEditingId(null);
+      await addDoc(collection(db, 'portfolio'), portfolioForm);
+      setPortfolioForm({ name: '', description: '', link: '' });
       fetchData();
     } catch (error) {
-      console.error('Error updating service:', error);
+      console.error('Error adding portfolio:', error);
     }
   };
 
@@ -285,29 +250,6 @@ export default function Admin() {
       } catch (error) {
         console.error('Error deleting service:', error);
       }
-    }
-  };
-
-  const handleAddPortfolio = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await addDoc(collection(db, 'portfolio'), portfolioForm);
-      setPortfolioForm({ name: '', description: '', link: '' });
-      setEditingId(null);
-      fetchData();
-    } catch (error) {
-      console.error('Error adding portfolio:', error);
-    }
-  };
-
-  const handleUpdatePortfolio = async (id: string) => {
-    try {
-      await updateDoc(doc(db, 'portfolio', id), portfolioForm);
-      setPortfolioForm({ name: '', description: '', link: '' });
-      setEditingId(null);
-      fetchData();
-    } catch (error) {
-      console.error('Error updating portfolio:', error);
     }
   };
 
@@ -333,145 +275,193 @@ export default function Admin() {
     }
   };
 
-  if (!authenticated) {
-    if (show2FA) {
-      return (
-        <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
-          <Card className="w-full max-w-md p-8 bg-card border-border">
-            <h1 className="text-3xl font-bold text-accent mb-2 text-center">التحقق الثنائي</h1>
-            <p className="text-center text-gray-400 mb-6">تم إرسال رمز التحقق إلى: {email}</p>
-            
-            <form onSubmit={handleVerify2FA} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">رمز التحقق (6 أرقام)</label>
-                <Input
-                  type="text"
-                  placeholder="أدخل الرمز"
-                  value={twoFACode}
-                  onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  maxLength={6}
-                  className="bg-background border-border text-foreground text-center text-2xl tracking-widest"
-                  required
-                />
-              </div>
-              
-              {otpMessage && (
-                <div className={`p-3 rounded text-sm text-center ${
-                  otpMessage.includes('✅')
-                    ? 'bg-green-900/20 text-green-400'
-                    : otpMessage.includes('❌')
-                    ? 'bg-red-900/20 text-red-400'
-                    : 'bg-yellow-900/20 text-yellow-400'
-                }`}>
-                  {otpMessage}
-                </div>
-              )}
-              
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-400">الوقت المتبقي:</span>
-                <span className={`font-mono font-bold ${
-                  otpStatus.remainingTime < 60000 ? 'text-red-400' : 'text-accent'
-                }`}>
-                  {otpStatus.formattedTime}
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-400">المحاولات المتبقية:</span>
-                <span className={`font-bold ${
-                  otpStatus.remainingAttempts <= 1 ? 'text-red-400' : 'text-accent'
-                }`}>
-                  {otpStatus.remainingAttempts}
-                </span>
-              </div>
-              
-              <Button type="submit" className="btn-luxury w-full" disabled={loading || otpStatus.expired}>
-                {loading ? <Loader className="animate-spin mr-2" size={20} /> : ''}
-                تحقق
-              </Button>
-              
-              <Button
-                type="button"
-                onClick={handleResendOTP}
-                className="btn-luxury-outline w-full"
-                disabled={loading}
-              >
-                {loading ? <Loader className="animate-spin mr-2" size={20} /> : ''}
-                إرسال رمز جديد
-              </Button>
-            </form>
-          </Card>
-        </div>
-      );
+  const handleChangePassword = () => {
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setPasswordMessage('يرجى ملء جميع الحقول');
+      return;
     }
 
+    const storedPassword = localStorage.getItem('luxcod-admin-password') || 'luxcod123';
+    if (oldPassword !== storedPassword) {
+      setPasswordMessage('كلمة المرور القديمة غير صحيحة');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage('كلمات المرور الجديدة غير متطابقة');
+      return;
+    }
+
+    localStorage.setItem('luxcod-admin-password', newPassword);
+    setPasswordMessage('تم تغيير كلمة المرور بنجاح');
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+  };
+
+  // Login Form
+  if (!authenticated) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
-        <Card className="w-full max-w-md p-8 bg-card border-border">
-          <h1 className="text-3xl font-bold text-accent mb-6 text-center">LuxCod Admin</h1>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <Input
-              type="email"
-              placeholder="البريد الإلكتروني"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="bg-background border-border text-foreground"
-              required
-            />
-            <div className="relative">
-              <Input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="كلمة المرور"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="bg-background border-border text-foreground pr-10"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-accent transition-colors"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-gray-900 border-gold/30">
+          <div className="p-8">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gold mb-2">LuxCod</h1>
+              <p className="text-gray-400">لوحة التحكم الإدارية</p>
             </div>
-            
-            {otpMessage && (
-              <div className={`p-3 rounded text-sm text-center ${
-                otpMessage.includes('❌')
-                  ? 'bg-red-900/20 text-red-400'
-                  : 'bg-yellow-900/20 text-yellow-400'
-              }`}>
-                {otpMessage}
-              </div>
+
+            {!show2FA ? (
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">البريد الإلكتروني</label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="أدخل بريدك الإلكتروني"
+                    className="bg-gray-800 border-gray-700 text-white"
+                    disabled={loading || sendingOTP}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">كلمة المرور</label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="أدخل كلمة المرور"
+                      className="bg-gray-800 border-gray-700 text-white pr-10"
+                      disabled={loading || sendingOTP}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gold transition"
+                      disabled={loading || sendingOTP}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+
+                {otpMessage && (
+                  <div className={`p-3 rounded-lg flex items-center gap-2 ${otpError ? 'bg-red-900/30 text-red-300' : 'bg-green-900/30 text-green-300'}`}>
+                    {otpError ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
+                    <span className="text-sm">{otpMessage}</span>
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full bg-gold hover:bg-gold/90 text-black font-bold"
+                  disabled={loading || sendingOTP}
+                >
+                  {loading || sendingOTP ? (
+                    <>
+                      <Loader className="mr-2 h-4 w-4 animate-spin" />
+                      جاري الإرسال...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="mr-2 h-4 w-4" />
+                      دخول
+                    </>
+                  )}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyOTP} className="space-y-4">
+                <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 text-center">
+                  <Mail className="mx-auto mb-2 text-blue-400" size={24} />
+                  <p className="text-sm text-gray-300 mb-1">تم إرسال رمز التحقق إلى:</p>
+                  <p className="text-gold font-semibold">{email}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">رمز التحقق (6 أرقام)</label>
+                  <Input
+                    type="text"
+                    value={twoFACode}
+                    onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                    maxLength={6}
+                    className="bg-gray-800 border-gray-700 text-white text-center text-2xl tracking-widest font-bold"
+                    disabled={sendingOTP}
+                  />
+                </div>
+
+                {otpStatus.exists && !otpStatus.expired && (
+                  <div className="text-center text-sm text-gray-400">
+                    الوقت المتبقي: <span className="text-gold font-bold">{otpStatus.formattedTime}</span>
+                  </div>
+                )}
+
+                {otpMessage && (
+                  <div className={`p-3 rounded-lg flex items-center gap-2 ${otpError ? 'bg-red-900/30 text-red-300' : 'bg-green-900/30 text-green-300'}`}>
+                    {otpError ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
+                    <span className="text-sm">{otpMessage}</span>
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full bg-gold hover:bg-gold/90 text-black font-bold"
+                  disabled={sendingOTP || twoFACode.length !== 6}
+                >
+                  تحقق
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-gold/30 text-gold hover:bg-gold/10"
+                  onClick={handleRequestNewOTP}
+                  disabled={sendingOTP}
+                >
+                  {sendingOTP ? (
+                    <>
+                      <Loader className="mr-2 h-4 w-4 animate-spin" />
+                      جاري الإرسال...
+                    </>
+                  ) : (
+                    'طلب رمز جديد'
+                  )}
+                </Button>
+              </form>
             )}
-            
-            <Button type="submit" className="btn-luxury w-full" disabled={loading}>
-              {loading ? <Loader className="animate-spin mr-2" size={20} /> : ''}
-              دخول
-            </Button>
-          </form>
+          </div>
         </Card>
       </div>
     );
   }
 
+  // Admin Dashboard
   return (
-    <div className="min-h-screen bg-background text-foreground p-4">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black p-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-accent">لوحة التحكم</h1>
-          <div className="flex gap-2">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-gold mb-2">لوحة التحكم</h1>
+            <p className="text-gray-400">إدارة المحتوى والخدمات</p>
+          </div>
+          <div className="flex gap-4">
             <Button
               onClick={() => setShowPasswordSettings(!showPasswordSettings)}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              variant="outline"
+              className="border-gold/30 text-gold hover:bg-gold/10"
             >
-              <Lock size={20} />
+              <Lock className="mr-2 h-4 w-4" />
               إعدادات الأمان
             </Button>
-            <Button onClick={handleLogout} className="flex items-center gap-2 bg-red-600 hover:bg-red-700">
-              <LogOut size={20} />
+            <Button
+              onClick={handleLogout}
+              variant="destructive"
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
               تسجيل الخروج
             </Button>
           </div>
@@ -479,84 +469,61 @@ export default function Admin() {
 
         {/* Password Settings */}
         {showPasswordSettings && (
-          <Card className="p-6 bg-card border-border mb-8">
-            <h2 className="text-2xl font-bold text-accent mb-4">إعدادات الأمان</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Change Password */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">تغيير كلمة المرور</h3>
-                <form onSubmit={handleChangePassword} className="space-y-3">
-                  <Input
-                    type="password"
-                    placeholder="كلمة المرور القديمة"
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                    className="bg-background border-border text-foreground"
-                    required
-                  />
-                  <Input
-                    type="password"
-                    placeholder="كلمة المرور الجديدة"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="bg-background border-border text-foreground"
-                    required
-                  />
-                  <Input
-                    type="password"
-                    placeholder="تأكيد كلمة المرور"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="bg-background border-border text-foreground"
-                    required
-                  />
-                  {passwordMessage && (
-                    <div className={`p-3 rounded text-sm ${
-                      passwordMessage.includes('✅')
-                        ? 'bg-green-900/20 text-green-400'
-                        : 'bg-red-900/20 text-red-400'
-                    }`}>
-                      {passwordMessage}
-                    </div>
-                  )}
-                  <Button type="submit" className="btn-luxury w-full">
-                    تحديث كلمة المرور
-                  </Button>
-                </form>
-              </div>
-
-              {/* 2FA Settings */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">المصادقة الثنائية</h3>
-                <div className="space-y-3">
-                  <p className="text-gray-400 text-sm">
-                    المصادقة الثنائية مفعلة. ستتلقى رمز تحقق عند كل محاولة دخول.
-                  </p>
-                  <div className="bg-green-900/20 border border-green-600 rounded p-3">
-                    <p className="text-green-400 text-sm">✓ المصادقة الثنائية نشطة</p>
-                  </div>
-                  <p className="text-gray-400 text-xs">
-                    البريد المسجل: {localStorage.getItem('luxcod-admin-email') || 'لم يتم تسجيل بريد'}
-                  </p>
+          <Card className="mb-8 bg-gray-900 border-gold/30 p-6">
+            <h2 className="text-xl font-bold text-gold mb-4">تغيير كلمة المرور</h2>
+            <div className="space-y-4">
+              <Input
+                type="password"
+                placeholder="كلمة المرور القديمة"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                className="bg-gray-800 border-gray-700 text-white"
+              />
+              <Input
+                type="password"
+                placeholder="كلمة المرور الجديدة"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="bg-gray-800 border-gray-700 text-white"
+              />
+              <Input
+                type="password"
+                placeholder="تأكيد كلمة المرور الجديدة"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="bg-gray-800 border-gray-700 text-white"
+              />
+              <Button
+                onClick={handleChangePassword}
+                className="bg-gold hover:bg-gold/90 text-black font-bold w-full"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                حفظ كلمة المرور الجديدة
+              </Button>
+              {passwordMessage && (
+                <div className="p-3 rounded-lg bg-blue-900/30 text-blue-300 text-sm">
+                  {passwordMessage}
                 </div>
-              </div>
+              )}
             </div>
           </Card>
         )}
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-border mt-8">
-          {['services', 'portfolio', 'ratings'].map((tab) => (
+        <div className="flex gap-4 mb-8 border-b border-gold/20">
+          {['services', 'portfolio', 'ratings'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`pb-4 px-4 font-semibold transition-colors ${
+              className={`px-6 py-3 font-semibold transition ${
                 activeTab === tab
-                  ? 'text-accent border-b-2 border-accent'
-                  : 'text-gray-400 hover:text-foreground'
+                  ? 'text-gold border-b-2 border-gold'
+                  : 'text-gray-400 hover:text-gold'
               }`}
             >
-              {tab === 'services' ? 'الخدمات' : tab === 'portfolio' ? 'المشاريع' : 'التقييمات'}
+              {tab === 'services' && 'الخدمات'}
+              {tab === 'portfolio' && 'المشاريع'}
+              {tab === 'ratings' && 'التقييمات'}
             </button>
           ))}
         </div>
@@ -564,205 +531,136 @@ export default function Admin() {
         {/* Services Tab */}
         {activeTab === 'services' && (
           <div className="space-y-6">
-            <Card className="p-6 bg-card border-border">
-              <h2 className="text-2xl font-bold mb-4">
-                {editingId ? 'تعديل الخدمة' : 'إضافة خدمة جديدة'}
-              </h2>
-              <form onSubmit={handleAddService} className="space-y-4">
+            <Card className="bg-gray-900 border-gold/30 p-6">
+              <h2 className="text-xl font-bold text-gold mb-4">إضافة خدمة جديدة</h2>
+              <div className="space-y-4">
                 <Input
-                  type="text"
                   placeholder="اسم الخدمة"
                   value={serviceForm.name}
                   onChange={(e) => setServiceForm({ ...serviceForm, name: e.target.value })}
-                  className="bg-background border-border text-foreground"
-                  required
+                  className="bg-gray-800 border-gray-700 text-white"
                 />
                 <Textarea
                   placeholder="وصف الخدمة"
                   value={serviceForm.description}
                   onChange={(e) => setServiceForm({ ...serviceForm, description: e.target.value })}
-                  className="bg-background border-border text-foreground"
-                  required
+                  className="bg-gray-800 border-gray-700 text-white"
                 />
-                <Textarea
+                <Input
                   placeholder="رسالة WhatsApp"
                   value={serviceForm.whatsappMessage}
                   onChange={(e) => setServiceForm({ ...serviceForm, whatsappMessage: e.target.value })}
-                  className="bg-background border-border text-foreground"
+                  className="bg-gray-800 border-gray-700 text-white"
                 />
-                <div className="flex gap-4">
-                  <Button type="submit" className="btn-luxury flex items-center gap-2">
-                    <Save size={20} />
-                    {editingId ? 'تحديث' : 'إضافة'}
-                  </Button>
-                  {editingId && (
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        setEditingId(null);
-                        setServiceForm({ name: '', description: '', whatsappMessage: '' });
-                      }}
-                      className="btn-luxury-outline"
-                    >
-                      إلغاء
-                    </Button>
-                  )}
-                </div>
-              </form>
+                <Button
+                  onClick={handleAddService}
+                  className="bg-gold hover:bg-gold/90 text-black font-bold w-full"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  إضافة الخدمة
+                </Button>
+              </div>
             </Card>
 
-            {/* Services List */}
-            <div className="space-y-4">
-              {services.map((service) => (
-                <Card key={service.id} className="p-6 bg-card border-border">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-accent mb-2">{service.name}</h3>
-                      <p className="text-gray-400 mb-2">{service.description}</p>
-                      {service.whatsappMessage && (
-                        <p className="text-sm text-gray-500">رسالة: {service.whatsappMessage}</p>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => {
-                          setEditingId(service.id);
-                          setServiceForm({
-                            name: service.name,
-                            description: service.description,
-                            whatsappMessage: service.whatsappMessage
-                          });
-                        }}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-                      >
-                        <Edit2 size={16} />
-                      </Button>
-                      <Button
-                        onClick={() => handleDeleteService(service.id)}
-                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+            {services.map(service => (
+              <Card key={service.id} className="bg-gray-900 border-gold/30 p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-bold text-gold">{service.name}</h3>
+                  <Button
+                    onClick={() => handleDeleteService(service.id)}
+                    variant="destructive"
+                    size="sm"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-gray-300 mb-2">{service.description}</p>
+                <p className="text-sm text-gray-400">WhatsApp: {service.whatsappMessage}</p>
+              </Card>
+            ))}
           </div>
         )}
 
         {/* Portfolio Tab */}
         {activeTab === 'portfolio' && (
           <div className="space-y-6">
-            <Card className="p-6 bg-card border-border">
-              <h2 className="text-2xl font-bold mb-4">
-                {editingId ? 'تعديل المشروع' : 'إضافة مشروع جديد'}
-              </h2>
-              <form onSubmit={handleAddPortfolio} className="space-y-4">
+            <Card className="bg-gray-900 border-gold/30 p-6">
+              <h2 className="text-xl font-bold text-gold mb-4">إضافة مشروع جديد</h2>
+              <div className="space-y-4">
                 <Input
-                  type="text"
                   placeholder="اسم المشروع"
                   value={portfolioForm.name}
                   onChange={(e) => setPortfolioForm({ ...portfolioForm, name: e.target.value })}
-                  className="bg-background border-border text-foreground"
-                  required
+                  className="bg-gray-800 border-gray-700 text-white"
                 />
                 <Textarea
                   placeholder="وصف المشروع"
                   value={portfolioForm.description}
                   onChange={(e) => setPortfolioForm({ ...portfolioForm, description: e.target.value })}
-                  className="bg-background border-border text-foreground"
-                  required
+                  className="bg-gray-800 border-gray-700 text-white"
                 />
                 <Input
-                  type="url"
                   placeholder="رابط المشروع"
                   value={portfolioForm.link}
                   onChange={(e) => setPortfolioForm({ ...portfolioForm, link: e.target.value })}
-                  className="bg-background border-border text-foreground"
-                  required
+                  className="bg-gray-800 border-gray-700 text-white"
                 />
-                <div className="flex gap-4">
-                  <Button type="submit" className="btn-luxury flex items-center gap-2">
-                    <Save size={20} />
-                    {editingId ? 'تحديث' : 'إضافة'}
-                  </Button>
-                  {editingId && (
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        setEditingId(null);
-                        setPortfolioForm({ name: '', description: '', link: '' });
-                      }}
-                      className="btn-luxury-outline"
-                    >
-                      إلغاء
-                    </Button>
-                  )}
-                </div>
-              </form>
+                <Button
+                  onClick={handleAddPortfolio}
+                  className="bg-gold hover:bg-gold/90 text-black font-bold w-full"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  إضافة المشروع
+                </Button>
+              </div>
             </Card>
 
-            {/* Portfolio List */}
-            <div className="space-y-4">
-              {portfolio.map((item) => (
-                <Card key={item.id} className="p-6 bg-card border-border">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-accent mb-2">{item.name}</h3>
-                      <p className="text-gray-400 mb-2">{item.description}</p>
-                      <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
-                        {item.link}
-                      </a>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => {
-                          setEditingId(item.id);
-                          setPortfolioForm({
-                            name: item.name,
-                            description: item.description,
-                            link: item.link
-                          });
-                        }}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-                      >
-                        <Edit2 size={16} />
-                      </Button>
-                      <Button
-                        onClick={() => handleDeletePortfolio(item.id)}
-                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+            {portfolio.map(project => (
+              <Card key={project.id} className="bg-gray-900 border-gold/30 p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-bold text-gold">{project.name}</h3>
+                  <Button
+                    onClick={() => handleDeletePortfolio(project.id)}
+                    variant="destructive"
+                    size="sm"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-gray-300 mb-2">{project.description}</p>
+                <a href={project.link} target="_blank" rel="noopener noreferrer" className="text-gold hover:underline text-sm">
+                  {project.link}
+                </a>
+              </Card>
+            ))}
           </div>
         )}
 
         {/* Ratings Tab */}
         {activeTab === 'ratings' && (
-          <div className="space-y-4">
-            {ratings.map((rating) => (
-              <Card key={rating.id} className="p-6 bg-card border-border">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-xl font-bold text-accent">{rating.name}</h3>
-                      <span className="text-accent">{'⭐'.repeat(rating.stars)}</span>
+          <div className="space-y-6">
+            {ratings.map(rating => (
+              <Card key={rating.id} className="bg-gray-900 border-gold/30 p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-gold">{rating.name}</h3>
+                    <div className="flex gap-1 mt-2">
+                      {[...Array(5)].map((_, i) => (
+                        <span key={i} className={i < rating.stars ? 'text-gold' : 'text-gray-600'}>
+                          ★
+                        </span>
+                      ))}
                     </div>
-                    <p className="text-gray-400">{rating.comment}</p>
                   </div>
                   <Button
                     onClick={() => handleDeleteRating(rating.id)}
-                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
+                    variant="destructive"
+                    size="sm"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
+                <p className="text-gray-300">{rating.comment}</p>
               </Card>
             ))}
           </div>

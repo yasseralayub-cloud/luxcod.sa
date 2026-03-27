@@ -7,6 +7,16 @@ if (typeof window !== 'undefined') {
   emailjs.init('njvn9St5gAnWLOI61');
 }
 
+// EmailJS Configuration
+export const EMAILJS_CONFIG = {
+  serviceId: 'service_tllf68q',
+  templateId: 'template_adpgkak',
+  publicKey: 'njvn9St5gAnWLOI61',
+  adminEmail: 'luxcode3@mail.com'
+};
+
+export { emailjs };
+
 const firebaseConfig = {
   apiKey: "AIzaSyD46R7Mei7ANhzqSyihJVtxO6YQsiZls8s",
   authDomain: "luxcod-ratings.firebaseapp.com",
