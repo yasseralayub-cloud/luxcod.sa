@@ -104,7 +104,6 @@ export const sendOTPEmail = async (email: string, otp: string): Promise<{ succes
     }
 
     const templateParams = {
-      to_email: email,
       passcode: otp,
       time: '15 minutes'
     };
