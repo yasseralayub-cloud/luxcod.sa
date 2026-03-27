@@ -1,9 +1,9 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import emailjs from '@emailjs/browser';
 
 // Initialize EmailJS
 if (typeof window !== 'undefined') {
-  const { default: emailjs } = require('@emailjs/browser');
   emailjs.init('njvn9St5gAnWLOI61');
 }
 

@@ -166,6 +166,14 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        format: 'es',
+      },
+    },
+  },
+  ssr: {
+    noExternal: ['firebase', '@emailjs/browser'],
   },
   server: {
     port: 3000,
@@ -182,7 +190,7 @@ export default defineConfig({
     ],
     fs: {
       strict: true,
-      deny: ["**/.*"],
+      deny: ["**/..*"],
     },
   },
 });
