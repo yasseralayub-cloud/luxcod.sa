@@ -1,6 +1,12 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
+// Initialize EmailJS
+if (typeof window !== 'undefined') {
+  const { default: emailjs } = require('@emailjs/browser');
+  emailjs.init('njvn9St5gAnWLOI61');
+}
+
 const firebaseConfig = {
   apiKey: "AIzaSyD46R7Mei7ANhzqSyihJVtxO6YQsiZls8s",
   authDomain: "luxcod-ratings.firebaseapp.com",
