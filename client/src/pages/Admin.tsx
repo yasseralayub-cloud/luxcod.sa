@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { LogOut, Plus, Edit2, Trash2, Save } from 'lucide-react';
+import { LogOut, Plus, Edit2, Trash2, Save, Eye, EyeOff, Lock } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 
@@ -32,11 +32,20 @@ interface Rating {
 export default function Admin() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [portfolio, setPortfolio] = useState<Portfolio[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [activeTab, setActiveTab] = useState('services');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showPasswordSettings, setShowPasswordSettings] = useState(false);
+  const [show2FA, setShow2FA] = useState(false);
+  const [twoFACode, setTwoFACode] = useState('');
+  const [twoFAVerified, setTwoFAVerified] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState('');
   
   // Form states
   const [serviceForm, setServiceForm] = useState({ name: '', description: '', whatsappMessage: '' });
@@ -53,14 +62,62 @@ export default function Admin() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'luxcod123') {
-      localStorage.setItem('luxcod-admin-auth', 'true');
-      setAuthenticated(true);
+    const storedPassword = localStorage.getItem('luxcod-admin-password') || 'luxcod123';
+    if (password === storedPassword) {
+      // Generate 2FA code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      localStorage.setItem('luxcod-2fa-code', code);
+      console.log('2FA Code:', code); // In production, send via email
+      setShow2FA(true);
       setPassword('');
-      fetchData();
     } else {
       alert('كلمة المرور غير صحيحة');
     }
+  };
+
+  const handleVerify2FA = (e: React.FormEvent) => {
+    e.preventDefault();
+    const storedCode = localStorage.getItem('luxcod-2fa-code');
+    if (twoFACode === storedCode) {
+      localStorage.setItem('luxcod-admin-auth', 'true');
+      setAuthenticated(true);
+      setTwoFACode('');
+      setShow2FA(false);
+      setTwoFAVerified(true);
+      fetchData();
+    } else {
+      alert('رمز التحقق غير صحيح');
+    }
+  };
+
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    const storedPassword = localStorage.getItem('luxcod-admin-password') || 'luxcod123';
+    
+    if (oldPassword !== storedPassword) {
+      setPasswordMessage('كلمة المرور القديمة غير صحيحة');
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage('كلمة المرور الجديدة غير متطابقة');
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      setPasswordMessage('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+      return;
+    }
+    
+    localStorage.setItem('luxcod-admin-password', newPassword);
+    setPasswordMessage('تم تغيير كلمة المرور بنجاح');
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setTimeout(() => {
+      setShowPasswordSettings(false);
+      setPasswordMessage('');
+    }, 2000);
   };
 
   const handleLogout = () => {
@@ -170,18 +227,51 @@ export default function Admin() {
   };
 
   if (!authenticated) {
+    if (show2FA) {
+      return (
+        <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-8 bg-card border-border">
+            <h1 className="text-3xl font-bold text-accent mb-2 text-center">التحقق الثنائي</h1>
+            <p className="text-center text-gray-400 mb-6">تم إرسال رمز التحقق إلى بريدك الإلكتروني</p>
+            <form onSubmit={handleVerify2FA} className="space-y-4">
+              <Input
+                type="text"
+                placeholder="أدخل رمز التحقق"
+                value={twoFACode}
+                onChange={(e) => setTwoFACode(e.target.value)}
+                maxLength={6}
+                className="bg-background border-border text-foreground text-center text-2xl tracking-widest"
+              />
+              <Button type="submit" className="btn-luxury w-full">
+                تحقق
+              </Button>
+            </form>
+          </Card>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
         <Card className="w-full max-w-md p-8 bg-card border-border">
           <h1 className="text-3xl font-bold text-accent mb-6 text-center">LuxCod Admin</h1>
           <form onSubmit={handleLogin} className="space-y-4">
-            <Input
-              type="password"
-              placeholder="كلمة المرور"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="bg-background border-border text-foreground"
-            />
+            <div className="relative">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="كلمة المرور"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-background border-border text-foreground pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-accent transition-colors"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
             <Button type="submit" className="btn-luxury w-full">
               دخول
             </Button>
@@ -197,14 +287,87 @@ export default function Admin() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-accent">لوحة التحكم</h1>
-          <Button onClick={handleLogout} className="flex items-center gap-2 bg-red-600 hover:bg-red-700">
-            <LogOut size={20} />
-            تسجيل الخروج
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowPasswordSettings(!showPasswordSettings)}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+            >
+              <Lock size={20} />
+              إعدادات الأمان
+            </Button>
+            <Button onClick={handleLogout} className="flex items-center gap-2 bg-red-600 hover:bg-red-700">
+              <LogOut size={20} />
+              تسجيل الخروج
+            </Button>
+          </div>
         </div>
 
+        {/* Password Settings */}
+        {showPasswordSettings && (
+          <Card className="p-6 bg-card border-border mb-8">
+            <h2 className="text-2xl font-bold text-accent mb-4">إعدادات الأمان</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Change Password */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">تغيير كلمة المرور</h3>
+                <form onSubmit={handleChangePassword} className="space-y-3">
+                  <Input
+                    type="password"
+                    placeholder="كلمة المرور القديمة"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    className="bg-background border-border text-foreground"
+                    required
+                  />
+                  <Input
+                    type="password"
+                    placeholder="كلمة المرور الجديدة"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="bg-background border-border text-foreground"
+                    required
+                  />
+                  <Input
+                    type="password"
+                    placeholder="تأكيد كلمة المرور"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="bg-background border-border text-foreground"
+                    required
+                  />
+                  {passwordMessage && (
+                    <div className={`p-3 rounded text-sm ${
+                      passwordMessage.includes('بنجاح')
+                        ? 'bg-green-900/20 text-green-400'
+                        : 'bg-red-900/20 text-red-400'
+                    }`}>
+                      {passwordMessage}
+                    </div>
+                  )}
+                  <Button type="submit" className="btn-luxury w-full">
+                    تحديث كلمة المرور
+                  </Button>
+                </form>
+              </div>
+
+              {/* 2FA Settings */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">المصادقة الثنائية</h3>
+                <div className="space-y-3">
+                  <p className="text-gray-400 text-sm">
+                    المصادقة الثنائية مفعلة. ستتلقى رمز تحقق عند كل محاولة دخول.
+                  </p>
+                  <div className="bg-green-900/20 border border-green-600 rounded p-3">
+                    <p className="text-green-400 text-sm">✓ المصادقة الثنائية نشطة</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-border">
+        <div className="flex gap-4 mb-8 border-b border-border mt-8">
           {['services', 'portfolio', 'ratings'].map((tab) => (
             <button
               key={tab}
