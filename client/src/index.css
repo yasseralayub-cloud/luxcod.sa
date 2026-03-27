@@ -43,99 +43,48 @@
 }
 
 :root {
-  /* LuxCod Luxury Design Theme */
-  /* Classic Luxury Modern Style */
-  
-  /* Primary colors - Gold for luxury accent */
-  --primary: #c9a96e;
-  --primary-foreground: #1a1a1a;
-  
-  /* Sidebar colors */
-  --sidebar-primary: #c9a96e;
-  --sidebar-primary-foreground: #1a1a1a;
-  
-  /* Chart colors */
-  --chart-1: #c9a96e;
-  --chart-2: #9d7bb3;
-  --chart-3: #a855f7;
-  --chart-4: #8b5cf6;
-  --chart-5: #7c3aed;
-  
-  /* Border radius */
+  --primary: var(--color-blue-700);
+  --primary-foreground: var(--color-blue-50);
+  --sidebar-primary: var(--color-blue-600);
+  --sidebar-primary-foreground: var(--color-blue-50);
+  --chart-1: var(--color-blue-300);
+  --chart-2: var(--color-blue-500);
+  --chart-3: var(--color-blue-600);
+  --chart-4: var(--color-blue-700);
+  --chart-5: var(--color-blue-800);
   --radius: 0.65rem;
-  
-  /* Dark theme colors */
-  --background: #1a1a1a;
-  --foreground: #f5f5f0;
-  --card: #2a2a2a;
-  --card-foreground: #f5f5f0;
-  --popover: #2a2a2a;
-  --popover-foreground: #f5f5f0;
-  --secondary: #3a3a3a;
-  --secondary-foreground: #e0e0d8;
-  --muted: #4a4a4a;
-  --muted-foreground: #b0b0a8;
-  --accent: #c9a96e;
-  --accent-foreground: #1a1a1a;
-  --destructive: #ef4444;
-  --destructive-foreground: #fafaf9;
-  --border: #3a3a3a;
-  --input: #2a2a2a;
-  --ring: #c9a96e;
-  --sidebar: #1a1a1a;
-  --sidebar-foreground: #f5f5f0;
-  --sidebar-accent: #c9a96e;
-  --sidebar-accent-foreground: #1a1a1a;
-  --sidebar-border: #3a3a3a;
-  --sidebar-ring: #c9a96e;
-}
-
-.dark {
-  /* Already using dark theme by default */
-  --primary: #c9a96e;
-  --primary-foreground: #1a1a1a;
-  --sidebar-primary: #c9a96e;
-  --sidebar-primary-foreground: #1a1a1a;
-  --background: #1a1a1a;
-  --foreground: #f5f5f0;
-  --card: #2a2a2a;
-  --card-foreground: #f5f5f0;
-  --popover: #2a2a2a;
-  --popover-foreground: #f5f5f0;
-  --secondary: #3a3a3a;
-  --secondary-foreground: #e0e0d8;
-  --muted: #4a4a4a;
-  --muted-foreground: #b0b0a8;
-  --accent: #c9a96e;
-  --accent-foreground: #1a1a1a;
-  --destructive: #ef4444;
-  --destructive-foreground: #fafaf9;
-  --border: #3a3a3a;
-  --input: #2a2a2a;
-  --ring: #c9a96e;
-  --sidebar: #1a1a1a;
-  --sidebar-foreground: #f5f5f0;
-  --sidebar-accent: #c9a96e;
-  --sidebar-accent-foreground: #1a1a1a;
-  --sidebar-border: #3a3a3a;
-  --sidebar-ring: #c9a96e;
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #0a0a0a;
+  --card-foreground: #ffffff;
+  --popover: #0a0a0a;
+  --popover-foreground: #ffffff;
+  --secondary: oklch(0.98 0.001 286.375);
+  --secondary-foreground: oklch(0.4 0.015 65);
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+  --accent: #fbbf24;
+  --accent-foreground: #000000;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: rgba(251, 191, 36, 0.2);
+  --input: rgba(251, 191, 36, 0.1);
+  --ring: oklch(0.623 0.214 259.815);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.235 0.015 65);
+  --sidebar-accent: oklch(0.967 0.001 286.375);
+  --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-ring: oklch(0.623 0.214 259.815);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
   }
-  
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Cairo', sans-serif;
-    font-weight: 700;
-  }
-  
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
   [type="button"]:not(:disabled),
@@ -147,27 +96,18 @@
   input[type="radio"]:not(:disabled) {
     @apply cursor-pointer;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 @layer components {
-  /**
-   * Custom container utility that centers content and adds responsive padding.
-   *
-   * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
-   * - Add responsive horizontal padding
-   * - Set max-width for large screens
-   *
-   * Usage: <div className="container">...</div>
-   *
-   * For custom widths, use max-w-* utilities directly:
-   * <div className="max-w-6xl mx-auto px-4">...</div>
-   */
   .container {
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
+    padding-left: 1rem;
     padding-right: 1rem;
   }
 
@@ -178,51 +118,24 @@
 
   @media (min-width: 640px) {
     .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
+      padding-left: 1.5rem;
       padding-right: 1.5rem;
     }
   }
 
   @media (min-width: 1024px) {
     .container {
-      padding-left: 2rem; /* 32px - desktop padding */
+      padding-left: 2rem;
       padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
+      max-width: 1280px;
     }
   }
 
-  /* Luxury Design Components */
-  
-  /* Gold divider line */
-  .gold-divider {
-    @apply h-px bg-gradient-to-r from-transparent via-accent to-transparent;
-  }
-  
-  /* Luxury button styles */
-  .btn-luxury {
-    @apply px-8 py-3 bg-accent text-accent-foreground font-semibold rounded-lg transition-all duration-500 hover:shadow-lg hover:shadow-accent/50 hover:-translate-y-1;
-  }
-  
-  .btn-luxury-outline {
-    @apply px-8 py-3 border-2 border-accent text-accent rounded-lg font-semibold transition-all duration-500 hover:bg-accent hover:text-accent-foreground;
-  }
-  
-  /* Luxury section padding */
   .section-padding {
     @apply py-20 md:py-32;
   }
-  
-  /* Luxury text gradient */
-  .text-gradient {
-    @apply bg-gradient-to-r from-accent via-accent to-purple-400 bg-clip-text text-transparent;
-  }
-  
-  /* Smooth scroll behavior */
-  html {
-    scroll-behavior: smooth;
-  }
-  
-  /* Fade in animation */
+
+  /* Animations */
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -231,110 +144,186 @@
       opacity: 1;
     }
   }
-  
+
   @keyframes slideUp {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(30px);
     }
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
-  
+
   @keyframes slideInLeft {
     from {
       opacity: 0;
-      transform: translateX(-30px);
+      transform: translateX(-40px);
     }
     to {
       opacity: 1;
       transform: translateX(0);
     }
   }
-  
+
   @keyframes slideInRight {
     from {
       opacity: 0;
-      transform: translateX(30px);
+      transform: translateX(40px);
     }
     to {
       opacity: 1;
       transform: translateX(0);
     }
   }
-  
+
   @keyframes scaleIn {
     from {
       opacity: 0;
-      transform: scale(0.95);
+      transform: scale(0.9);
     }
     to {
       opacity: 1;
       transform: scale(1);
     }
   }
-  
-  @keyframes glow {
+
+  @keyframes blob {
     0%, 100% {
-      box-shadow: 0 0 20px rgba(201, 169, 110, 0.3);
+      transform: translate(0, 0) scale(1);
     }
-    50% {
-      box-shadow: 0 0 40px rgba(201, 169, 110, 0.6);
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
     }
   }
-  
+
+  @keyframes glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(34, 197, 94, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
   .animate-fade-in {
     animation: fadeIn 0.6s ease-out;
   }
-  
+
   .animate-slide-up {
-    animation: slideUp 0.6s ease-out;
+    animation: slideUp 0.8s ease-out;
   }
-  
+
   .animate-slide-in-left {
-    animation: slideInLeft 0.7s ease-out;
+    animation: slideInLeft 0.8s ease-out;
   }
-  
+
   .animate-slide-in-right {
-    animation: slideInRight 0.7s ease-out;
+    animation: slideInRight 0.8s ease-out;
   }
-  
+
   .animate-scale-in {
-    animation: scaleIn 0.5s ease-out;
+    animation: scaleIn 0.6s ease-out;
   }
-  
-  .animate-glow {
-    animation: glow 2s ease-in-out infinite;
+
+  .animate-blob {
+    animation: blob 7s infinite;
   }
-  
+
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+
   /* Hover effects */
   .hover-lift {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
+
   .hover-lift:hover {
     transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(201, 169, 110, 0.2);
+    box-shadow: 0 20px 40px rgba(251, 191, 36, 0.2);
   }
-  
+
   /* Smooth transitions */
   * {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
+
+  /* Premium button styles */
+  .btn-luxury {
+    @apply px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black font-bold rounded-lg hover:shadow-lg hover:shadow-yellow-500/50 transition-all;
+  }
+
+  .btn-luxury-outline {
+    @apply px-6 py-3 border-2 border-yellow-400 text-yellow-400 bg-transparent rounded-lg hover:bg-yellow-400 hover:text-black transition-all;
+  }
+
+  /* Text gradient */
+  .text-gradient {
+    @apply bg-gradient-to-r from-yellow-300 via-purple-300 to-yellow-300 bg-clip-text text-transparent;
+  }
+
+  /* Glass morphism */
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+
+  /* Glow effect */
+  .glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+
+  /* Float effect */
+  .float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  /* Pulse glow */
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
 }
 
-/* RTL Support */
-html[dir="rtl"] {
-  direction: rtl;
-  text-align: right;
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
 }
 
-html[dir="rtl"] .text-left {
-  text-align: right;
+::-webkit-scrollbar-track {
+  background: #000000;
 }
 
-html[dir="rtl"] .text-right {
-  text-align: left;
+::-webkit-scrollbar-thumb {
+  background: #fbbf24;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #f59e0b;
 }
