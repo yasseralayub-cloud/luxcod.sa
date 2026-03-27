@@ -199,7 +199,7 @@ export default function Home() {
       },
       footer: {
         text: '© 2024 LuxCod. جميع الحقوق محفوظة.',
-        made: 'تم صنع ب',
+        made: 'صنع بـ ♥ من أجلكم',
       },
     },
     en: {
@@ -259,7 +259,7 @@ export default function Home() {
       },
       footer: {
         text: '© 2024 LuxCod. All rights reserved.',
-        made: 'Made with',
+        made: 'Made with ♥ for you',
       },
     },
   };
@@ -565,7 +565,7 @@ export default function Home() {
         <div className="container text-center text-gray-400">
           <p className="mb-2">{t.footer.text}</p>
           <p className="text-sm">
-            {t.footer.made} <span className="text-red-500">❤️</span> | v{VERSION} | {BUILD_DATE}
+            {t.footer.made}
           </p>
         </div>
       </footer>
