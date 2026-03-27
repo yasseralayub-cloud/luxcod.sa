@@ -302,43 +302,43 @@ export default function Admin() {
   // Login Form
   if (!authenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-gray-900 border-gold/30">
+      <div className="min-h-screen bg-gradient-to-br from-[#0B0F14] via-[#111827] to-[#0B0F14] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-[#1F2937] border-[#8B5CF6]/30">
           <div className="p-8">
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gold mb-2">LuxCod</h1>
-              <p className="text-gray-400">لوحة التحكم الإدارية</p>
+              <h1 className="text-3xl font-bold text-[#C9A96E] mb-2">LuxCod</h1>
+              <p className="text-[#9CA3AF]">لوحة التحكم الإدارية</p>
             </div>
 
             {!show2FA ? (
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">البريد الإلكتروني</label>
+                  <label className="block text-sm font-medium text-[#D1D5DB] mb-2">البريد الإلكتروني</label>
                   <Input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="أدخل بريدك الإلكتروني"
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="bg-[#111827] border-[#374151] text-[#F9FAFB]"
                     disabled={loading || sendingOTP}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">كلمة المرور</label>
+                  <label className="block text-sm font-medium text-[#D1D5DB] mb-2">كلمة المرور</label>
                   <div className="relative">
                     <Input
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="أدخل كلمة المرور"
-                      className="bg-gray-800 border-gray-700 text-white pr-10"
+                      className="bg-[#111827] border-[#374151] text-[#F9FAFB] pr-10"
                       disabled={loading || sendingOTP}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gold transition"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#C9A96E] transition"
                       disabled={loading || sendingOTP}
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -347,7 +347,7 @@ export default function Admin() {
                 </div>
 
                 {otpMessage && (
-                  <div className={`p-3 rounded-lg flex items-center gap-2 ${otpError ? 'bg-red-900/30 text-red-300' : 'bg-green-900/30 text-green-300'}`}>
+                  <div className={`p-3 rounded-lg flex items-center gap-2 ${otpError ? 'bg-red-900/30 text-red-400' : 'bg-green-900/30 text-green-400'}`}>
                     {otpError ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
                     <span className="text-sm">{otpMessage}</span>
                   </div>
@@ -355,7 +355,7 @@ export default function Admin() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-gold hover:bg-gold/90 text-black font-bold"
+                  className="w-full bg-[#8B5CF6] hover:bg-[#A78BFA] text-[#F9FAFB] font-bold"
                   disabled={loading || sendingOTP}
                 >
                   {loading || sendingOTP ? (
@@ -375,31 +375,31 @@ export default function Admin() {
               <form onSubmit={handleVerifyOTP} className="space-y-4">
                 <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 text-center">
                   <Mail className="mx-auto mb-2 text-blue-400" size={24} />
-                  <p className="text-sm text-gray-300 mb-1">تم إرسال رمز التحقق إلى:</p>
-                  <p className="text-gold font-semibold">{email}</p>
+                  <p className="text-sm text-[#D1D5DB] mb-1">تم إرسال رمز التحقق إلى:</p>
+                  <p className="text-[#C9A96E] font-semibold">{email}</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">رمز التحقق (6 أرقام)</label>
+                  <label className="block text-sm font-medium text-[#D1D5DB] mb-2">رمز التحقق (6 أرقام)</label>
                   <Input
                     type="text"
                     value={twoFACode}
                     onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     placeholder="000000"
                     maxLength={6}
-                    className="bg-gray-800 border-gray-700 text-white text-center text-2xl tracking-widest font-bold"
+                    className="bg-[#111827] border-[#374151] text-white text-center text-2xl tracking-widest font-bold"
                     disabled={sendingOTP}
                   />
                 </div>
 
                 {otpStatus.exists && !otpStatus.expired && (
-                  <div className="text-center text-sm text-gray-400">
-                    الوقت المتبقي: <span className="text-gold font-bold">{otpStatus.formattedTime}</span>
+                  <div className="text-center text-sm text-[#9CA3AF]">
+                    الوقت المتبقي: <span className="text-[#C9A96E] font-bold">{otpStatus.formattedTime}</span>
                   </div>
                 )}
 
                 {otpMessage && (
-                  <div className={`p-3 rounded-lg flex items-center gap-2 ${otpError ? 'bg-red-900/30 text-red-300' : 'bg-green-900/30 text-green-300'}`}>
+                  <div className={`p-3 rounded-lg flex items-center gap-2 ${otpError ? 'bg-red-900/30 text-red-400' : 'bg-green-900/30 text-green-400'}`}>
                     {otpError ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
                     <span className="text-sm">{otpMessage}</span>
                   </div>
@@ -407,7 +407,7 @@ export default function Admin() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-gold hover:bg-gold/90 text-black font-bold"
+                  className="w-full bg-[#8B5CF6] hover:bg-[#A78BFA] text-[#F9FAFB] font-bold"
                   disabled={sendingOTP || twoFACode.length !== 6}
                 >
                   تحقق
@@ -416,7 +416,7 @@ export default function Admin() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full border-gold/30 text-gold hover:bg-gold/10"
+                  className="w-full border-[#8B5CF6]/30 text-[#C9A96E] hover:bg-[#8B5CF6]/10"
                   onClick={handleRequestNewOTP}
                   disabled={sendingOTP}
                 >
@@ -444,14 +444,14 @@ export default function Admin() {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gold mb-2">لوحة التحكم</h1>
-            <p className="text-gray-400">إدارة المحتوى والخدمات</p>
+            <h1 className="text-4xl font-bold text-[#C9A96E] mb-2">لوحة التحكم</h1>
+            <p className="text-[#9CA3AF]">إدارة المحتوى والخدمات</p>
           </div>
           <div className="flex gap-4">
             <Button
               onClick={() => setShowPasswordSettings(!showPasswordSettings)}
               variant="outline"
-              className="border-gold/30 text-gold hover:bg-gold/10"
+              className="border-[#8B5CF6]/30 text-[#C9A96E] hover:bg-[#8B5CF6]/10"
             >
               <Lock className="mr-2 h-4 w-4" />
               إعدادات الأمان
@@ -469,33 +469,33 @@ export default function Admin() {
 
         {/* Password Settings */}
         {showPasswordSettings && (
-          <Card className="mb-8 bg-gray-900 border-gold/30 p-6">
-            <h2 className="text-xl font-bold text-gold mb-4">تغيير كلمة المرور</h2>
+          <Card className="mb-8 bg-[#1F2937] border-[#8B5CF6]/30 p-6">
+            <h2 className="text-xl font-bold text-[#C9A96E] mb-4">تغيير كلمة المرور</h2>
             <div className="space-y-4">
               <Input
                 type="password"
                 placeholder="كلمة المرور القديمة"
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
+                className="bg-[#111827] border-[#374151] text-white"
               />
               <Input
                 type="password"
                 placeholder="كلمة المرور الجديدة"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
+                className="bg-[#111827] border-[#374151] text-white"
               />
               <Input
                 type="password"
                 placeholder="تأكيد كلمة المرور الجديدة"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
+                className="bg-[#111827] border-[#374151] text-white"
               />
               <Button
                 onClick={handleChangePassword}
-                className="bg-gold hover:bg-gold/90 text-black font-bold w-full"
+                className="bg-[#8B5CF6] hover:bg-[#A78BFA] text-[#F9FAFB] font-bold w-full"
               >
                 <Save className="mr-2 h-4 w-4" />
                 حفظ كلمة المرور الجديدة
@@ -510,15 +510,15 @@ export default function Admin() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-gold/20">
+        <div className="flex gap-4 mb-8 border-b border-[#8B5CF6]/20">
           {['services', 'portfolio', 'ratings'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-6 py-3 font-semibold transition ${
                 activeTab === tab
-                  ? 'text-gold border-b-2 border-gold'
-                  : 'text-gray-400 hover:text-gold'
+                  ? 'text-[#C9A96E] border-b-2 border-[#8B5CF6]'
+                  : 'text-[#9CA3AF] hover:text-[#C9A96E]'
               }`}
             >
               {tab === 'services' && 'الخدمات'}
@@ -531,30 +531,30 @@ export default function Admin() {
         {/* Services Tab */}
         {activeTab === 'services' && (
           <div className="space-y-6">
-            <Card className="bg-gray-900 border-gold/30 p-6">
-              <h2 className="text-xl font-bold text-gold mb-4">إضافة خدمة جديدة</h2>
+            <Card className="bg-[#1F2937] border-[#8B5CF6]/30 p-6">
+              <h2 className="text-xl font-bold text-[#C9A96E] mb-4">إضافة خدمة جديدة</h2>
               <div className="space-y-4">
                 <Input
                   placeholder="اسم الخدمة"
                   value={serviceForm.name}
                   onChange={(e) => setServiceForm({ ...serviceForm, name: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="bg-[#111827] border-[#374151] text-white"
                 />
                 <Textarea
                   placeholder="وصف الخدمة"
                   value={serviceForm.description}
                   onChange={(e) => setServiceForm({ ...serviceForm, description: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="bg-[#111827] border-[#374151] text-white"
                 />
                 <Input
                   placeholder="رسالة WhatsApp"
                   value={serviceForm.whatsappMessage}
                   onChange={(e) => setServiceForm({ ...serviceForm, whatsappMessage: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="bg-[#111827] border-[#374151] text-white"
                 />
                 <Button
                   onClick={handleAddService}
-                  className="bg-gold hover:bg-gold/90 text-black font-bold w-full"
+                  className="bg-[#8B5CF6] hover:bg-[#A78BFA] text-[#F9FAFB] font-bold w-full"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   إضافة الخدمة
@@ -563,9 +563,9 @@ export default function Admin() {
             </Card>
 
             {services.map(service => (
-              <Card key={service.id} className="bg-gray-900 border-gold/30 p-6">
+              <Card key={service.id} className="bg-[#1F2937] border-[#8B5CF6]/30 p-6">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-bold text-gold">{service.name}</h3>
+                  <h3 className="text-lg font-bold text-[#C9A96E]">{service.name}</h3>
                   <Button
                     onClick={() => handleDeleteService(service.id)}
                     variant="destructive"
@@ -574,8 +574,8 @@ export default function Admin() {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-gray-300 mb-2">{service.description}</p>
-                <p className="text-sm text-gray-400">WhatsApp: {service.whatsappMessage}</p>
+                <p className="text-[#D1D5DB] mb-2">{service.description}</p>
+                <p className="text-sm text-[#9CA3AF]">WhatsApp: {service.whatsappMessage}</p>
               </Card>
             ))}
           </div>
@@ -584,30 +584,30 @@ export default function Admin() {
         {/* Portfolio Tab */}
         {activeTab === 'portfolio' && (
           <div className="space-y-6">
-            <Card className="bg-gray-900 border-gold/30 p-6">
-              <h2 className="text-xl font-bold text-gold mb-4">إضافة مشروع جديد</h2>
+            <Card className="bg-[#1F2937] border-[#8B5CF6]/30 p-6">
+              <h2 className="text-xl font-bold text-[#C9A96E] mb-4">إضافة مشروع جديد</h2>
               <div className="space-y-4">
                 <Input
                   placeholder="اسم المشروع"
                   value={portfolioForm.name}
                   onChange={(e) => setPortfolioForm({ ...portfolioForm, name: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="bg-[#111827] border-[#374151] text-white"
                 />
                 <Textarea
                   placeholder="وصف المشروع"
                   value={portfolioForm.description}
                   onChange={(e) => setPortfolioForm({ ...portfolioForm, description: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="bg-[#111827] border-[#374151] text-white"
                 />
                 <Input
                   placeholder="رابط المشروع"
                   value={portfolioForm.link}
                   onChange={(e) => setPortfolioForm({ ...portfolioForm, link: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="bg-[#111827] border-[#374151] text-white"
                 />
                 <Button
                   onClick={handleAddPortfolio}
-                  className="bg-gold hover:bg-gold/90 text-black font-bold w-full"
+                  className="bg-[#8B5CF6] hover:bg-[#A78BFA] text-[#F9FAFB] font-bold w-full"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   إضافة المشروع
@@ -616,9 +616,9 @@ export default function Admin() {
             </Card>
 
             {portfolio.map(project => (
-              <Card key={project.id} className="bg-gray-900 border-gold/30 p-6">
+              <Card key={project.id} className="bg-[#1F2937] border-[#8B5CF6]/30 p-6">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-bold text-gold">{project.name}</h3>
+                  <h3 className="text-lg font-bold text-[#C9A96E]">{project.name}</h3>
                   <Button
                     onClick={() => handleDeletePortfolio(project.id)}
                     variant="destructive"
@@ -627,8 +627,8 @@ export default function Admin() {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-gray-300 mb-2">{project.description}</p>
-                <a href={project.link} target="_blank" rel="noopener noreferrer" className="text-gold hover:underline text-sm">
+                <p className="text-[#D1D5DB] mb-2">{project.description}</p>
+                <a href={project.link} target="_blank" rel="noopener noreferrer" className="text-[#C9A96E] hover:underline text-sm">
                   {project.link}
                 </a>
               </Card>
@@ -640,13 +640,13 @@ export default function Admin() {
         {activeTab === 'ratings' && (
           <div className="space-y-6">
             {ratings.map(rating => (
-              <Card key={rating.id} className="bg-gray-900 border-gold/30 p-6">
+              <Card key={rating.id} className="bg-[#1F2937] border-[#8B5CF6]/30 p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-gold">{rating.name}</h3>
+                    <h3 className="text-lg font-bold text-[#C9A96E]">{rating.name}</h3>
                     <div className="flex gap-1 mt-2">
                       {[...Array(5)].map((_, i) => (
-                        <span key={i} className={i < rating.stars ? 'text-gold' : 'text-gray-600'}>
+                        <span key={i} className={i < rating.stars ? 'text-[#C9A96E]' : 'text-gray-600'}>
                           ★
                         </span>
                       ))}
@@ -660,7 +660,7 @@ export default function Admin() {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-gray-300">{rating.comment}</p>
+                <p className="text-[#D1D5DB]">{rating.comment}</p>
               </Card>
             ))}
           </div>
