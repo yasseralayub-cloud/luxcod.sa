@@ -748,9 +748,12 @@ export default function Home() {
       </button>
 
       {/* Footer */}
-      <footer className="border-t border-gold py-8 px-4 text-center text-gray-400">
-        <p className="text-sm">
+      <footer className="border-t border-[#8B5CF6]/30 py-8 px-4 text-center">
+        <p className="text-sm text-[#D1D5DB] mb-2">
           {currentContent.footer}
+        </p>
+        <p className="text-xs text-[#9CA3AF]">
+          v{VERSION.replace(/\./g, '.')}
         </p>
       </footer>
     </div>
